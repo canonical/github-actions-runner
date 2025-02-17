@@ -1,4 +1,4 @@
-﻿#if !(OS_WINDOWS && ARM64)
+﻿#if !(OS_WINDOWS && ARM64) && !S390X
 using System;
 using System.Collections.Generic;
 using System.IO;
