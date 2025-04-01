@@ -31,7 +31,7 @@ namespace GitHub.Runner.Common.Tests.Worker
             return hc;
         }
 
-#if OS_LINUX
+#if OS_LINUX && !PPC64LE && !S390X
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Worker")]

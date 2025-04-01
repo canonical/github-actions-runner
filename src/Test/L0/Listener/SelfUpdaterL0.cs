@@ -1,4 +1,4 @@
-﻿#if !(OS_WINDOWS && ARM64)
+﻿#if !(OS_WINDOWS && ARM64) && !PPC64LE && !S390X
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,6 +16,7 @@ using Xunit;
 
 namespace GitHub.Runner.Common.Tests.Listener
 {
+#if !S390X &&  !PPC64LE // Self-update is not currently supported on S390X / PPC64LE
     public sealed class SelfUpdaterL0
     {
         private Mock<IRunnerServer> _runnerServer;
@@ -291,5 +292,6 @@ namespace GitHub.Runner.Common.Tests.Listener
             }
         }
     }
+#endif
 }
 #endif
