@@ -1,4 +1,4 @@
-﻿#if !(OS_WINDOWS && ARM64)
+﻿#if !(OS_WINDOWS && ARM64) && !PPC64LE && !S390X
 using System;
 using System.Collections.Generic;
 using System.IO;
