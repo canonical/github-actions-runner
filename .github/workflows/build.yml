@@ -40,11 +40,9 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
     - name: Apply patches
-      if: matrix.runtime == 's390x' || matrix.runtime == 'ppc64le'
+      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le'
       run: |
-        sudo apt-get install -y patchutils
-        rediff patches/runner-main-sdk8-${{ matrix.runtime }}.patch > apply.patch
-        git apply apply.patch
+        git apply patches/runner-main-sdk8-${{ matrix.runtime }}.patch
 
     - name: Update DotNet required version pin
       run: |
