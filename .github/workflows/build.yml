@@ -18,9 +18,21 @@ jobs:
   build:
     strategy:
       matrix:
-        runtime: [ s390x, ppc64le, amd64, arm64 ]
+        runtime: [ linux-s390x, linux-ppc64le, linux-amd64, linux-arm64 ]
+        include:
+        - runtime: linux-s390x
+          runs_on: s390x
 
-    runs-on: [ self-hosted, "${{ matrix.runtime }}" ]
+        - runtime: linux-ppc64le
+          runs_on: ppc64le
+
+        - runtime: linux-amd64
+          runs_on: amd64
+
+        - runtime: linux-arm64
+          runs_on: arm64
+
+    runs-on: [ self-hosted, "${{ matrix.runs_on }}" ]
     steps:
     - uses: actions/checkout@v4
 
