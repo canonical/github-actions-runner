@@ -18,7 +18,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runtime: [ linux-s390x, linux-ppc64le, linux-amd64, linux-arm64 ]
+        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64 ]
         include:
         - runtime: linux-s390x
           runs_on: s390x
@@ -26,7 +26,7 @@ jobs:
         - runtime: linux-ppc64le
           runs_on: ppc64le
 
-        - runtime: linux-amd64
+        - runtime: linux-x64
           runs_on: amd64
 
         - runtime: linux-arm64
