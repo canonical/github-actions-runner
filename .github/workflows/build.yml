@@ -20,19 +20,20 @@ jobs:
       matrix:
         runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64 ]
         include:
-        - runtime: linux-s390x
-          runs_on: s390x
-          patch_tag: s390x
-
-        - runtime: linux-ppc64le
-          runs_on: ppc64le
-          patch_tag: ppc64le
 
         - runtime: linux-x64
           runs_on: amd64
 
         - runtime: linux-arm64
           runs_on: arm64
+
+        - runtime: linux-ppc64le
+          runs_on: ppc64le
+          patch_tag: ppc64le
+
+        - runtime: linux-s390x
+          runs_on: s390x
+          patch_tag: s390x
 
     runs-on: [ self-hosted, "${{ matrix.runs_on }}" ]
     steps:
