@@ -186,26 +186,6 @@ jobs:
           ${{ steps.releaseNote.outputs.note }}
 
     # Upload release assets (full runner packages)
-    - name: Upload Release Asset (win-x64)
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.createRelease.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/actions-runner-win-x64-${{ steps.releaseNote.outputs.version }}.zip
-        asset_name: actions-runner-win-x64-${{ steps.releaseNote.outputs.version }}.zip
-        asset_content_type: application/octet-stream
-
-    - name: Upload Release Asset (win-arm64)
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.createRelease.outputs.upload_url }}
-        asset_path: ${{ github.workspace }}/actions-runner-win-arm64-${{ steps.releaseNote.outputs.version }}.zip
-        asset_name: actions-runner-win-arm64-${{ steps.releaseNote.outputs.version }}.zip
-        asset_content_type: application/octet-stream
-
     - name: Upload Release Asset (linux-x64)
       uses: actions/upload-release-asset@v1.0.2
       env:
