@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    if: startsWith(github.ref, 'refs/heads/releases/') || github.ref == 'refs/heads/main'
+    if: startsWith(github.ref, 'refs/heads/releases/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/patches'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -67,7 +67,7 @@ jobs:
         - runtime: linux-arm64
           runs_on: arm64
 
-    runs-on: ${{ matrix.os }}
+    runs-on: [ self-hosted, "${{ matrix.runs_on }}" ]
     steps:
     - uses: actions/checkout@v4
 
