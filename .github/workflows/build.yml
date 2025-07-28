@@ -24,6 +24,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install DotNet SDK
+      run: apt-get update && apt-get install -y dotnet-sdk-8.0
+
+    - name: Apply patches
+      if: matrix.runtime == 's390x' || matrix.runtime == 'ppc64le'
+      run: |
+        git apply patches/runner-main-sdk8-${{ matrix.runtime }}.patch
+
+    - name: Update DotNet required version pin
+      run: |
+        sed -i "s/$( cat src/global.json | jq -r '.sdk.version' )/8.0/" src/global.json
+
     # Build runner layout
     - name: Build & Layout Release
       run: |
