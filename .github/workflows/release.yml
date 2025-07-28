@@ -96,6 +96,15 @@ jobs:
         ./dev.sh package Release ${{ matrix.runtime }}
       working-directory: src
 
+    - name: Test package
+      if: github.event_name != 'pull_request'
+      run: |
+        mkdir package_test
+        tar -xvzf ../_package/*.tar.gz -C package_test
+        ./package_test/config.sh --version
+      working-directory: src
+        
+
     # compute shas and set as job outputs to use in release notes
     - run: |
         file=$(ls)

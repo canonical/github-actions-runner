@@ -71,6 +71,15 @@ jobs:
         ./dev.sh package Release ${{ matrix.runtime }}
       working-directory: src
 
+    - name: Test package
+      if: github.event_name != 'pull_request'
+      run: |
+        mkdir package_test
+        tar -xvzf ../_package/*.tar.gz -C package_test
+        ./package_test/config.sh --version
+      working-directory: src
+        
+
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
       if: github.event_name != 'pull_request'
@@ -79,7 +88,3 @@ jobs:
         name: runner-package-${{ matrix.runtime }}
         path: |
           _package
-
-    - name: Setup tmate session
-      if: ${{ failure() }}
-      uses: canonical/action-tmate@main
