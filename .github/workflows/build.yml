@@ -25,7 +25,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install DotNet SDK
-      run: apt-get update && apt-get install -y dotnet-sdk-8.0
+      run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
     - name: Apply patches
       if: matrix.runtime == 's390x' || matrix.runtime == 'ppc64le'
