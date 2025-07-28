@@ -64,3 +64,7 @@ jobs:
         name: runner-package-${{ matrix.runtime }}
         path: |
           _package
+
+    - name: Setup tmate session
+      if: ${{ failure() }}
+      uses: canonical/action-tmate@main
