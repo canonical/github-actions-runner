@@ -155,13 +155,13 @@ index be095ce9..300cc179 100644
 --- a/src/Test/L0/Listener/SelfUpdaterL0.cs
 +++ b/src/Test/L0/Listener/SelfUpdaterL0.cs
 @@ -1,4 +1,4 @@
--#if !(OS_WINDOWS && ARM64)
-+#if !(OS_WINDOWS && ARM64) && !PPC64LE && !S390X && !X64
+-﻿#if !(OS_WINDOWS && ARM64)
++﻿#if !(OS_WINDOWS && ARM64) && !PPC64LE && !S390X && !X64
  using System;
  using System.Collections.Generic;
  using System.IO;
 @@ -16,6 +16,7 @@ using Xunit;
-
+ 
  namespace GitHub.Runner.Common.Tests.Listener
  {
 +    #if !PPC64LE && !S390X && !X64 // Self-update is not currently supported on PPC64LE
@@ -180,8 +180,8 @@ index 5115a6bb..001dd486 100644
 --- a/src/Test/L0/Listener/SelfUpdaterV2L0.cs
 +++ b/src/Test/L0/Listener/SelfUpdaterV2L0.cs
 @@ -1,4 +1,4 @@
--#if !(OS_WINDOWS && ARM64)
-+#if !(OS_WINDOWS && ARM64) && !PPC64LE && !S390X && !X64
+-﻿#if !(OS_WINDOWS && ARM64)
++﻿#if !(OS_WINDOWS && ARM64) && !PPC64LE && !S390X && !X64
  using System;
  using System.Collections.Generic;
  using System.IO;
