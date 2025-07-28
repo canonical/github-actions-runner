@@ -30,7 +30,9 @@ jobs:
     - name: Apply patches
       if: matrix.runtime == 's390x' || matrix.runtime == 'ppc64le'
       run: |
-        git apply --ignore-space-change --ignore-whitespace patches/runner-main-sdk8-${{ matrix.runtime }}.patch
+        sudo apt-get install -y patchutils
+        rediff patches/runner-main-sdk8-${{ matrix.runtime }}.patch > apply.patch
+        git apply apply.patch
 
     - name: Update DotNet required version pin
       run: |
