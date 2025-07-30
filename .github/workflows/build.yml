@@ -93,7 +93,7 @@ jobs:
       if: ${{ failure() }}
       with:
         MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
-        MATTERMOST_CHANNEL: the-best-channel
+        MATTERMOST_CHANNEL: is-devops-alerts
         TEXT: |
           ${{ github.repository }} build failed.
           [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
