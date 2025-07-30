@@ -67,7 +67,7 @@ jobs:
         - runtime: linux-arm64
           runs_on: arm64
 
-    runs-on: [ self-hosted, "${{ matrix.runs_on }}" ]
+    runs-on: [ self-hosted, noble, "${{ matrix.runs_on }}" ]
     steps:
     - uses: actions/checkout@v4
 
