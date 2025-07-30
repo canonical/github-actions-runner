@@ -233,3 +233,16 @@ jobs:
         asset_path: ${{ github.workspace }}/actions-runner-linux-s390x-${{ steps.releaseNote.outputs.version }}.tar.gz
         asset_name: actions-runner-linux-s390x-${{ steps.releaseNote.outputs.version }}.tar.gz
         asset_content_type: application/octet-stream
+
+
+    - uses: mattermost/action-mattermost-notify@master
+      if: ${{ failure() }}
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: the-best-channel
+        TEXT: |
+          ${{ github.repository }} release failed.
+          [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
+          ${{ secrets.MM_PING_USERS }}
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
