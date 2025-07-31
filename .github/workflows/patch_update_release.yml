@@ -129,6 +129,7 @@ jobs:
       if: steps.process-arches.outputs.successful_arches != ''
       run: |
         rm -f successful_arches.txt
+        cd upstream-runner && git checkout ${{ steps.get-tags.outputs.LATEST_TAG }}
         cp -r upstream-runner/* .
 
     - name: Create pull request to main
