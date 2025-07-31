@@ -35,7 +35,7 @@ jobs:
           runs_on: s390x
           patch_tag: s390x
 
-    runs-on: [ self-hosted, "${{ matrix.runs_on }}" ]
+    runs-on: [ self-hosted, noble, "${{ matrix.runs_on }}" ]
     steps:
     - uses: actions/checkout@v4
 
@@ -88,3 +88,15 @@ jobs:
         name: runner-package-${{ matrix.runtime }}
         path: |
           _package
+
+    - uses: mattermost/action-mattermost-notify@master
+      if: ${{ failure() }}
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: is-devops-alerts
+        TEXT: |
+          ${{ github.repository }} build failed.
+          [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
+          ${{ secrets.MM_PING_USERS }}
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
