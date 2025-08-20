@@ -66,13 +66,13 @@ jobs:
 
     # Create runner package tar.gz/zip
     - name: Package Release
-      if: github.event_name != 'pull_request'
+      # if: github.event_name != 'pull_request'
       run: |
         ./dev.sh package Release ${{ matrix.runtime }}
       working-directory: src
 
     - name: Test package
-      if: github.event_name != 'pull_request'
+      # if: github.event_name != 'pull_request'
       run: |
         mkdir package_test
         tar -xvzf ../_package/*.tar.gz -C package_test
@@ -82,7 +82,7 @@ jobs:
 
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
-      if: github.event_name != 'pull_request'
+      # if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
         name: runner-package-${{ matrix.runtime }}
@@ -102,5 +102,4 @@ jobs:
     #     MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
 
     - name: Setup tmate session
-      if: ${{ failure() }}
       uses: canonical/action-tmate@main
