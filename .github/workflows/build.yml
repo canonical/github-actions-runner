@@ -66,13 +66,13 @@ jobs:
 
     # Create runner package tar.gz/zip
     - name: Package Release
-      # if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request'
       run: |
         ./dev.sh package Release ${{ matrix.runtime }}
       working-directory: src
 
     - name: Test package
-      # if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request'
       run: |
         mkdir package_test
         tar -xvzf ../_package/*.tar.gz -C package_test
@@ -82,24 +82,21 @@ jobs:
 
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
-      # if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request'
       uses: actions/upload-artifact@v4
       with:
         name: runner-package-${{ matrix.runtime }}
         path: |
           _package
 
-    # - uses: mattermost/action-mattermost-notify@master
-    #   if: ${{ failure() }}
-    #   with:
-    #     MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
-    #     MATTERMOST_CHANNEL: is-devops-alerts
-    #     TEXT: |
-    #       ${{ github.repository }} build failed.
-    #       [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
-    #       ${{ secrets.MM_PING_USERS }}
-    #     MATTERMOST_USERNAME: ${{ github.triggering_actor }}
-    #     MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
-
-    - name: Setup tmate session
-      uses: canonical/action-tmate@main
+    - uses: mattermost/action-mattermost-notify@master
+      if: ${{ failure() }}
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: is-devops-alerts
+        TEXT: |
+          ${{ github.repository }} build failed.
+          [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
+          ${{ secrets.MM_PING_USERS }}
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
