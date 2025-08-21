@@ -19,7 +19,7 @@ diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
 index ca8f6c28..5d06f9be 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
-@@ -187,3 +187,11 @@ fi
+@@ -187,3 +187,13 @@ fi
  if [[ "$PACKAGERUNTIME" == "linux-arm" ]]; then
      acquireExternalTool "$NODE_URL/v${NODE20_VERSION}/node-v${NODE20_VERSION}-linux-armv7l.tar.gz" node20 fix_nested_dir
  fi
