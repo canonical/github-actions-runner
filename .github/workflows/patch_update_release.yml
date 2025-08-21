@@ -136,7 +136,7 @@ jobs:
       uses: canonical/create-pull-request@main
       if: steps.process-arches.outputs.successful_arches != ''
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.PAT }}
         commit-message: "Update release: ${{ steps.get-tags.outputs.PREVIOUS_TAG }} → ${{ steps.get-tags.outputs.LATEST_TAG }} [${{ steps.process-arches.outputs.successful_arches }}]"
         branch-name: patch-release-sync/${{ steps.get-tags.outputs.LATEST_TAG }}
         title: Sync release patch ${{ steps.get-tags.outputs.LATEST_TAG }}
