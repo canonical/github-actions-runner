@@ -3,7 +3,7 @@ name: Auto Merge Oldest Pull Request
 on:
     schedule:
         # Run every hour
-        - cron: "0 * * * *"
+        - cron: "0 */4 * * *"
     workflow_dispatch:
 
 jobs:
