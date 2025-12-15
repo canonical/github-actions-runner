@@ -142,12 +142,12 @@ jobs:
           # 2025-08-22: Using GitHub's Personal Access Token is required to allow automated workflow
           # triggers (on: pull_request) from Pull Requests issued by this workflow.
           token: ${{ secrets.PE_BOT_PAT }}
-          commit-message: "Update release: ${{ steps.get-commits.outputs.PREVIOUS_TAG }} → ${{ steps.get-commits.outputs.LATEST_TAG }} [${{ steps.process-arches.outputs.successful_arches }}]"
+          commit-message: "Update release: ${{ steps.get-tags.outputs.PREVIOUS_TAG }} → ${{ steps.get-tags.outputs.LATEST_TAG }} [${{ steps.process-arches.outputs.successful_arches }}]"
           committer: Platform Engineering Bot <is-devops-team@canonical.com>
           author: Platform Engineering Bot <is-devops-team@canonical.com>
-          branch: patch-sync/${{ steps.get-commits.outputs.LATEST_TAG }}
-          title: Sync release patch ${{ steps.get-commits.outputs.LATEST_TAG }}
-          body: Sync release branch patch for commit ${{ steps.get-commits.outputs.LATEST_TAG }}
+          branch: patch-sync/${{ steps.get-tags.outputs.LATEST_TAG }}
+          title: Sync release patch ${{ steps.get-tags.outputs.LATEST_TAG }}
+          body: Sync release branch patch for commit ${{ steps.get-tags.outputs.LATEST_TAG }}
 
       - name: Prepare repo for release
         run: |
