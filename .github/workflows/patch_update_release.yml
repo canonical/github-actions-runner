@@ -2,162 +2,162 @@ name: Update Runner Patches (Release-to-Release)
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
   push:
     paths:
-      - 'patches/runner-sdk8-*.patch'
-      - 'patches/last_processed_tag.txt'
+      - "patches/runner-sdk8-*.patch"
+      - "patches/last_processed_tag.txt"
 
 jobs:
   update-patches:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout your repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout your repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Clone upstream runner repository
-      run: git clone --tags https://github.com/actions/runner.git upstream-runner
+      - name: Clone upstream runner repository
+        run: git clone --tags https://github.com/actions/runner.git upstream-runner
 
-    - name: Get release tags
-      id: get-tags
-      run: |
-        cd upstream-runner
-        # Get latest release tag
-        LATEST_TAG=$(git tag --sort=-v:refname | grep '^v[0-9]' | head -n1)
-        echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
-        echo "LATEST_COMMIT=$(git rev-parse $LATEST_TAG)" >> $GITHUB_OUTPUT
-        
-        # Get previous processed tag
-        if [ -f ../patches/last_processed_tag.txt ]; then
-          PREVIOUS_TAG=$(cat ../patches/last_processed_tag.txt)
-          echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-        else
-          echo "PREVIOUS_TAG=" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Check for new release
-      if: steps.get-tags.outputs.PREVIOUS_TAG == steps.get-tags.outputs.LATEST_TAG
-      run: |
-        echo "No new releases - skipping"
-        exit 0
-
-    - name: Verify previous release exists
-      if: steps.get-tags.outputs.PREVIOUS_TAG != '' && steps.get-tags.outputs.PREVIOUS_TAG != steps.get-tags.outputs.LATEST_TAG
-      run: |
-        cd upstream-runner
-        if ! git rev-parse ${{ steps.get-tags.outputs.PREVIOUS_TAG }} >/dev/null 2>&1; then
-          echo "Previous tag ${{ steps.get-tags.outputs.PREVIOUS_TAG }} not found"
-          exit 1
-        fi
-
-    - name: Process architectures
-      if: steps.get-tags.outputs.PREVIOUS_TAG != '' && steps.get-tags.outputs.PREVIOUS_TAG != steps.get-tags.outputs.LATEST_TAG
-      id: process-arches
-      run: |
-        mkdir -p patches
-        touch successful_arches.txt
-        
-        for arch in ppc64le s390x; do
-          echo "Processing $arch..."
+      - name: Get release tags
+        id: get-tags
+        run: |
           cd upstream-runner
-          
-          # Reset to clean state
-          git reset --hard
-          git clean -fd
-          
-          # Check if previous patch exists
-          if [ ! -f "../patches/runner-sdk8-$arch.patch" ] || \
-             ! grep -q "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "../patches/runner-sdk8-$arch.patch"; then
-            echo "No valid previous patch for $arch"
-            cd ..
-            continue
+          # Get latest release tag
+          LATEST_TAG=$(git tag --sort=-v:refname | grep '^v[0-9]' | head -n1)
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "LATEST_COMMIT=$(git rev-parse $LATEST_TAG)" >> $GITHUB_OUTPUT
+
+          # Get previous processed tag
+          if [ -f ../patches/last_processed_tag.txt ]; then
+            PREVIOUS_TAG=$(cat ../patches/last_processed_tag.txt)
+            echo "PREVIOUS_TAG=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          else
+            echo "PREVIOUS_TAG=" >> $GITHUB_OUTPUT
           fi
 
-          # Apply previous patch to previous release
-          git checkout ${{ steps.get-tags.outputs.PREVIOUS_TAG }}
-          if ! git apply --check --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"; then
-            echo "::warning::Previous patch application failed for $arch"
-            cd ..
-            continue
+      - name: Check for new release
+        if: steps.get-tags.outputs.PREVIOUS_TAG == steps.get-tags.outputs.LATEST_TAG
+        run: |
+          echo "No new releases - skipping"
+          exit 0
+
+      - name: Verify previous release exists
+        if: steps.get-tags.outputs.PREVIOUS_TAG != '' && steps.get-tags.outputs.PREVIOUS_TAG != steps.get-tags.outputs.LATEST_TAG
+        run: |
+          cd upstream-runner
+          if ! git rev-parse ${{ steps.get-tags.outputs.PREVIOUS_TAG }} >/dev/null 2>&1; then
+            echo "Previous tag ${{ steps.get-tags.outputs.PREVIOUS_TAG }} not found"
+            exit 1
           fi
-          git apply --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"
-          
-          # Stash changes
-          git stash push -m "patch-$arch"
-          
-          # Apply to latest release
-          git checkout ${{ steps.get-tags.outputs.LATEST_TAG }}
-          if ! git stash apply stash^{/patch-$arch}; then
-            echo "::warning::Stash application failed for $arch on ${{ steps.get-tags.outputs.LATEST_TAG }}"
+
+      - name: Process architectures
+        if: steps.get-tags.outputs.PREVIOUS_TAG != '' && steps.get-tags.outputs.PREVIOUS_TAG != steps.get-tags.outputs.LATEST_TAG
+        id: process-arches
+        run: |
+          mkdir -p patches
+          touch successful_arches.txt
+
+          for arch in ppc64le s390x; do
+            echo "Processing $arch..."
+            cd upstream-runner
+            
+            # Reset to clean state
+            git reset --hard
+            git clean -fd
+            
+            # Check if previous patch exists
+            if [ ! -f "../patches/runner-sdk8-$arch.patch" ] || \
+               ! grep -q "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "../patches/runner-sdk8-$arch.patch"; then
+              echo "No valid previous patch for $arch"
+              cd ..
+              continue
+            fi
+
+            # Apply previous patch to previous release
+            git checkout ${{ steps.get-tags.outputs.PREVIOUS_TAG }}
+            if ! git apply --check --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"; then
+              echo "::warning::Previous patch application failed for $arch"
+              cd ..
+              continue
+            fi
+            git apply --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"
+            
+            # Stash changes
+            git stash push -m "patch-$arch"
+            
+            # Apply to latest release
+            git checkout ${{ steps.get-tags.outputs.LATEST_TAG }}
+            if ! git stash apply stash^{/patch-$arch}; then
+              echo "::warning::Stash application failed for $arch on ${{ steps.get-tags.outputs.LATEST_TAG }}"
+              git reset --hard
+              git stash drop || true
+              cd ..
+              continue
+            fi
+            
+            # Create new patch
+            git diff --patch --ignore-space-at-eol > "../patches/runner-sdk8-$arch.patch"
+            echo "# From upstream release: ${{ steps.get-tags.outputs.LATEST_TAG }}" >> "../patches/runner-sdk8-$arch.patch"
+            
+            # Cleanup
             git reset --hard
             git stash drop || true
             cd ..
-            continue
+            
+            echo "$arch" >> successful_arches.txt
+          done
+
+          # Set output for successful architectures
+          if [ -s successful_arches.txt ]; then
+            echo "successful_arches=$(paste -sd, successful_arches.txt)" >> $GITHUB_OUTPUT
           fi
-          
-          # Create new patch
-          git diff --patch --ignore-space-at-eol > "../patches/runner-sdk8-$arch.patch"
-          echo "# From upstream release: ${{ steps.get-tags.outputs.LATEST_TAG }}" >> "../patches/runner-sdk8-$arch.patch"
-          
-          # Cleanup
-          git reset --hard
-          git stash drop || true
-          cd ..
-          
-          echo "$arch" >> successful_arches.txt
-        done
 
-        # Set output for successful architectures
-        if [ -s successful_arches.txt ]; then
-          echo "successful_arches=$(paste -sd, successful_arches.txt)" >> $GITHUB_OUTPUT
-        fi
+      - name: Update tag reference
+        if: steps.process-arches.outputs.successful_arches != ''
+        run: |
+          echo "${{ steps.get-tags.outputs.LATEST_TAG }}" > patches/last_processed_tag.txt
 
-    - name: Update tag reference
-      if: steps.process-arches.outputs.successful_arches != ''
-      run: |
-        echo "${{ steps.get-tags.outputs.LATEST_TAG }}" > patches/last_processed_tag.txt
+      # Only commit the patches for release patch sync
+      - name: Prepare repo for PR
+        if: steps.process-arches.outputs.successful_arches != ''
+        run: |
+          rm -f successful_arches.txt
 
-    # Only commit the patches for release patch sync
-    - name: Prepare repo for PR
-      if: steps.process-arches.outputs.successful_arches != ''
-      run: |
-        rm -f successful_arches.txt
+      - name: Import and configure the GPG key for Platform Engineering bot
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.PE_BOT_GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.PE_BOT_GPG_PASSPHRASE }}
+          git_config_global: true
+          git_user_signingkey: true
+          git_commit_gpgsign: true
 
-            - name: Import and configure the GPG key for Platform Engineering bot
-      uses: crazy-max/ghaction-import-gpg@v6
-      with:
-        gpg_private_key: ${{ secrets.PE_BOT_GPG_PRIVATE_KEY }}
-        passphrase: ${{ secrets.PE_BOT_GPG_PASSPHRASE }}
-        git_config_global: true
-        git_user_signingkey: true
-        git_commit_gpgsign: true
+      - name: Create pull request to main
+        uses: peter-evans/create-pull-request@v6
+        if: steps.process-arches.outputs.successful_arches != ''
+        with:
+          # 2025-08-22: Using GitHub's Personal Access Token is required to allow automated workflow
+          # triggers (on: pull_request) from Pull Requests issued by this workflow.
+          token: ${{ secrets.PE_BOT_PAT }}
+          commit-message: "Update release: ${{ steps.get-commits.outputs.PREVIOUS_TAG }} → ${{ steps.get-commits.outputs.LATEST_TAG }} [${{ steps.process-arches.outputs.successful_arches }}]"
+          committer: Platform Engineering Bot <is-devops-team@canonical.com>
+          author: Platform Engineering Bot <is-devops-team@canonical.com>
+          branch: patch-sync/${{ steps.get-commits.outputs.LATEST_TAG }}
+          title: Sync release patch ${{ steps.get-commits.outputs.LATEST_TAG }}
+          body: Sync release branch patch for commit ${{ steps.get-commits.outputs.LATEST_TAG }}
 
-    - name: Create pull request to main
-      uses: peter-evans/create-pull-request@v6
-      if: steps.process-arches.outputs.successful_arches != ''
-      with:
-        # 2025-08-22: Using GitHub's Personal Access Token is required to allow automated workflow
-        # triggers (on: pull_request) from Pull Requests issued by this workflow.
-        token: ${{ secrets.PE_BOT_PAT }}
-        commit-message: "Update release: ${{ steps.get-commits.outputs.PREVIOUS_TAG }} → ${{ steps.get-commits.outputs.LATEST_TAG }} [${{ steps.process-arches.outputs.successful_arches }}]"
-        committer: Platform Engineering Bot <is-devops-team@canonical.com>
-        author: Platform Engineering Bot <is-devops-team@canonical.com>
-        branch: patch-sync/${{ steps.get-commits.outputs.LATEST_TAG }}
-        title: Sync release patch ${{ steps.get-commits.outputs.LATEST_TAG }}
-        body: Sync release branch patch for commit ${{ steps.get-commits.outputs.LATEST_TAG }}
+      - name: Prepare repo for release
+        run: |
+          cd upstream-runner && git checkout ${{ steps.get-tags.outputs.LATEST_TAG }} && cd ..
+          cp -r upstream-runner/* .
+          rm -rf upstream-runner
 
-    - name: Prepare repo for release
-      run: |
-        cd upstream-runner && git checkout ${{ steps.get-tags.outputs.LATEST_TAG }} && cd ..
-        cp -r upstream-runner/* .
-        rm -rf upstream-runner
-
-    - name: Create release branch
-      if: steps.process-arches.outputs.successful_arches != ''
-      run: |
-        git checkout -b releases/${{ steps.get-tags.outputs.LATEST_TAG }}
-        git add . && git commit -m "Create release ${{steps.get-tags.outputs.LATEST_TAG}}"
-        git push -u origin releases/${{ steps.get-tags.outputs.LATEST_TAG }}
+      - name: Create release branch
+        if: steps.process-arches.outputs.successful_arches != ''
+        run: |
+          git checkout -b releases/${{ steps.get-tags.outputs.LATEST_TAG }}
+          git add . && git commit -m "Create release ${{steps.get-tags.outputs.LATEST_TAG}}"
+          git push -u origin releases/${{ steps.get-tags.outputs.LATEST_TAG }}
