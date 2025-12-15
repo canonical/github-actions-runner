@@ -156,3 +156,15 @@ jobs:
         branch: patch-sync/${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}
         title: Sync main patch ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}
         body: Sync main branch patcdh for commit ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}
+
+    - uses: mattermost/action-mattermost-notify@master
+      if: ${{ failure() }}
+      with:
+        MATTERMOST_WEBHOOK_URL: ${{ secrets.MM_WEBHOOK_URL }}
+        MATTERMOST_CHANNEL: is-devops-alerts
+        TEXT: |
+          ${{ github.repository }} build failed.
+          [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
+          ${{ secrets.MM_PING_USERS }}
+        MATTERMOST_USERNAME: ${{ github.triggering_actor }}
+        MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
