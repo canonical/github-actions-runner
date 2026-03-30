@@ -1,35 +1,7 @@
 ## What's Changed
-* chore: update Node versions by @github-actions[bot] in https://github.com/actions/runner/pull/4200
-* Update dotnet sdk to latest version @8.0.417 by @github-actions[bot] in https://github.com/actions/runner/pull/4201
-* Bump System.Formats.Asn1 and System.Security.Cryptography.Pkcs by @dependabot[bot] in https://github.com/actions/runner/pull/4202
-* Allow empty container options by @ericsciple in https://github.com/actions/runner/pull/4208
-* Update Docker to v29.1.5 and Buildx to v0.31.0 by @github-actions[bot] in https://github.com/actions/runner/pull/4212
-* Report job level annotations by @TingluoHuang in https://github.com/actions/runner/pull/4216
-* Fix local action display name showing `Run /./` instead of `Run ./` by @ericsciple in https://github.com/actions/runner/pull/4218
-* Update Docker to v29.2.0 and Buildx to v0.31.1 by @github-actions[bot] in https://github.com/actions/runner/pull/4219
-* Add support for libssl3 and libssl3t64 for newer Debian/Ubuntu versions by @nekketsuuu in https://github.com/actions/runner/pull/4213
-* Validate work dir during runner start up. by @TingluoHuang in https://github.com/actions/runner/pull/4227
-* Bump hook to 0.8.1 by @nikola-jokic in https://github.com/actions/runner/pull/4222
-* Support return job result as exitcode in hosted runner. by @TingluoHuang in https://github.com/actions/runner/pull/4233
-* Add telemetry tracking for deprecated set-output and save-state commands by @ericsciple in https://github.com/actions/runner/pull/4221
-* Fix parser comparison mismatches by @ericsciple in https://github.com/actions/runner/pull/4220
-* Remove unnecessary connection test during some registration flows by @zarenner in https://github.com/actions/runner/pull/4244
-* chore: update Node versions by @github-actions[bot] in https://github.com/actions/runner/pull/4249
-* Update dotnet sdk to latest version @8.0.418 by @github-actions[bot] in https://github.com/actions/runner/pull/4250
-* Fix link to SECURITY.md in README by @TingluoHuang in https://github.com/actions/runner/pull/4253
-* Try to infer runner is on hosted/ghes when githuburl is empty. by @TingluoHuang in https://github.com/actions/runner/pull/4254
-* Add Node.js 20 deprecation warning annotation (Phase 1) by @salmanmkc in https://github.com/actions/runner/pull/4242
-* Update Node.js 20 deprecation date to June 2nd, 2026 by @salmanmkc in https://github.com/actions/runner/pull/4258
-* Composite Action Step Markers by @ericsciple in https://github.com/actions/runner/pull/4243
-* Symlink actions cache by @paveliak in https://github.com/actions/runner/pull/4260
-* Bump minimatch in /src/Misc/expressionFunc/hashFiles by @dependabot[bot] in https://github.com/actions/runner/pull/4261
-* Bump @stylistic/eslint-plugin from 3.1.0 to 5.9.0 in /src/Misc/expressionFunc/hashFiles by @dependabot[bot] in https://github.com/actions/runner/pull/4257
+* Remove AllowCaseFunction feature flag by @ericsciple in https://github.com/actions/runner/pull/4316
 
-## New Contributors
-* @nekketsuuu made their first contribution in https://github.com/actions/runner/pull/4213
-* @zarenner made their first contribution in https://github.com/actions/runner/pull/4244
-
-**Full Changelog**: https://github.com/actions/runner/compare/v2.331.0...v2.332.0
+**Full Changelog**: https://github.com/actions/runner/compare/v2.333.0...v2.333.1
 
 _Note: Actions Runner follows a progressive release policy, so the latest release might not be available to your enterprise, organization, or repository yet.
 To confirm which version of the Actions Runner you should expect, please view the download instructions for your enterprise, organization, or repository.
