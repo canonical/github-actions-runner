@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: write # Required to push the SDK version upgrade branch
+  pull-requests: write # Required to create the upgrade pull request via gh cli
 
 jobs:
   dotnet-update:

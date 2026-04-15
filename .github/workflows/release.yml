@@ -9,7 +9,7 @@ on:
     - releaseVersion
 
 permissions:
-  contents: write
+  contents: write # Required to create GitHub releases and upload release assets
 
 jobs:
   check:

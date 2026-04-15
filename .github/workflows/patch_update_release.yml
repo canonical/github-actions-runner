@@ -10,8 +10,8 @@ on:
       - "patches/last_processed_tag.txt"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: write # Required to push patch updates and release branches
+  pull-requests: write # Required to create pull requests via peter-evans/create-pull-request
 
 jobs:
   update-patches:
