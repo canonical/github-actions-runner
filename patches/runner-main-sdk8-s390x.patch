@@ -1,5 +1,5 @@
 diff --git a/src/Directory.Build.props b/src/Directory.Build.props
-index 9c069b12..d26b0dc2 100644
+index 9c069b1..d26b0dc 100644
 --- a/src/Directory.Build.props
 +++ b/src/Directory.Build.props
 @@ -44,6 +44,12 @@
@@ -16,7 +16,7 @@ index 9c069b12..d26b0dc2 100644
    <!-- Set TRACE/DEBUG vars -->
    <PropertyGroup>
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index 874c3939..575a28e8 100755
+index 874c393..575a28e 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -187,3 +187,13 @@ fi
@@ -35,7 +35,7 @@ index 874c3939..575a28e8 100755
 +fi
 \ No newline at end of file
 diff --git a/src/Misc/layoutroot/config.sh b/src/Misc/layoutroot/config.sh
-index 14cc6bab..c8ed8b92 100755
+index 14cc6ba..c8ed8b9 100755
 --- a/src/Misc/layoutroot/config.sh
 +++ b/src/Misc/layoutroot/config.sh
 @@ -20,25 +20,29 @@ then
@@ -86,7 +86,7 @@ index 14cc6bab..c8ed8b92 100755
  
      if ! [ -x "$(command -v ldconfig)" ]; then
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 58395898..b3dc2e83 100644
+index 5839589..b3dc2e8 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -59,7 +59,9 @@ namespace GitHub.Runner.Common
@@ -112,7 +112,7 @@ index 58395898..b3dc2e83 100644
              public static readonly Architecture PlatformArchitecture = Architecture.X64;
  #endif
 diff --git a/src/Runner.Common/Util/VarUtil.cs b/src/Runner.Common/Util/VarUtil.cs
-index 97273a1a..78f78701 100644
+index 97273a1..78f7870 100644
 --- a/src/Runner.Common/Util/VarUtil.cs
 +++ b/src/Runner.Common/Util/VarUtil.cs
 @@ -53,6 +53,10 @@ namespace GitHub.Runner.Common.Util
@@ -127,7 +127,7 @@ index 97273a1a..78f78701 100644
                          throw new NotSupportedException(); // Should never reach here.
                  }
 diff --git a/src/Sdk/Sdk.csproj b/src/Sdk/Sdk.csproj
-index 644bf887..bce36a6c 100644
+index 644bf88..bce36a6 100644
 --- a/src/Sdk/Sdk.csproj
 +++ b/src/Sdk/Sdk.csproj
 @@ -4,7 +4,7 @@
@@ -140,7 +140,7 @@ index 644bf887..bce36a6c 100644
          <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
          <Version>$(Version)</Version>
 diff --git a/src/Test/L0/ConstantGenerationL0.cs b/src/Test/L0/ConstantGenerationL0.cs
-index f3c1b8f9..9a1c5aa0 100644
+index f3c1b8f..9a1c5aa 100644
 --- a/src/Test/L0/ConstantGenerationL0.cs
 +++ b/src/Test/L0/ConstantGenerationL0.cs
 @@ -20,6 +20,8 @@ namespace GitHub.Runner.Common.Tests
@@ -153,7 +153,7 @@ index f3c1b8f9..9a1c5aa0 100644
                  "osx-arm64"
              };
 diff --git a/src/Test/L0/Listener/SelfUpdaterL0.cs b/src/Test/L0/Listener/SelfUpdaterL0.cs
-index 8003dd07..06f6c9fd 100644
+index 8003dd0..06f6c9f 100644
 --- a/src/Test/L0/Listener/SelfUpdaterL0.cs
 +++ b/src/Test/L0/Listener/SelfUpdaterL0.cs
 @@ -1,4 +1,4 @@
@@ -178,7 +178,7 @@ index 8003dd07..06f6c9fd 100644
  }
  #endif
 diff --git a/src/Test/L0/Listener/SelfUpdaterV2L0.cs b/src/Test/L0/Listener/SelfUpdaterV2L0.cs
-index a91e1127..0a982cac 100644
+index a91e112..0a982ca 100644
 --- a/src/Test/L0/Listener/SelfUpdaterV2L0.cs
 +++ b/src/Test/L0/Listener/SelfUpdaterV2L0.cs
 @@ -1,4 +1,4 @@
@@ -188,7 +188,7 @@ index a91e1127..0a982cac 100644
  using System.Collections.Generic;
  using System.IO;
 diff --git a/src/Test/L0/Worker/StepHostL0.cs b/src/Test/L0/Worker/StepHostL0.cs
-index bac7d41d..d924f65d 100644
+index bac7d41..d924f65 100644
 --- a/src/Test/L0/Worker/StepHostL0.cs
 +++ b/src/Test/L0/Worker/StepHostL0.cs
 @@ -31,7 +31,7 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -201,7 +201,7 @@ index bac7d41d..d924f65d 100644
          [Trait("Level", "L0")]
          [Trait("Category", "Worker")]
 diff --git a/src/Test/Test.csproj b/src/Test/Test.csproj
-index a5a19aea..b2086aa5 100644
+index a5a19ae..b2086aa 100644
 --- a/src/Test/Test.csproj
 +++ b/src/Test/Test.csproj
 @@ -2,6 +2,10 @@
@@ -216,7 +216,7 @@ index a5a19aea..b2086aa5 100644
          <NoWarn>NU1701;NU1603;NU1603;xUnit2013;SYSLIB0050;SYSLIB0051</NoWarn>
      </PropertyGroup>
 diff --git a/src/dev.sh b/src/dev.sh
-index 716fa08e..5f20ca6a 100755
+index 716fa08..5f20ca6 100755
 --- a/src/dev.sh
 +++ b/src/dev.sh
 @@ -54,6 +54,8 @@ elif [[ "$CURRENT_PLATFORM" == 'linux' ]]; then
@@ -261,7 +261,7 @@ index 716fa08e..5f20ca6a 100755
  heading "Dotnet SDK Version"
  dotnet --version
 diff --git a/src/dir.proj b/src/dir.proj
-index 056a312e..3f9a3679 100644
+index 056a312..3f9a367 100644
 --- a/src/dir.proj
 +++ b/src/dir.proj
 @@ -41,8 +41,17 @@
@@ -284,4 +284,4 @@ index 056a312e..3f9a3679 100644
          <Exec Command="%22$(DesktopMSBuild)%22 Runner.Service/Windows/RunnerService.csproj /p:Configuration=$(BUILDCONFIG) /p:PackageRuntime=$(PackageRuntime) /p:OutputPath=%22$(MSBuildProjectDirectory)/../_layout/bin%22" ConsoleToMSBuild="true" Condition="'$(PackageRuntime)' == 'win-x64' Or '$(PackageRuntime)' == 'win-x86' Or '$(PackageRuntime)' == 'win-arm64'" />
      </Target>
  
-# From upstream commit: 40dd583defe00b07f45ff976c95b564f7929bf69
+# From upstream commit: c7f6c49ba048d7c9884ee671d852dc9bf8db1694
