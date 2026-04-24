@@ -16,4 +16,4 @@ jobs:
             [Pipeline](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) was failed :red_circle:
             ${{ secrets.MM_PING_USERS }}
           MATTERMOST_USERNAME: ${{ github.triggering_actor }}
-          MATTERMOST_ICON_URL: https://www.flaticon.com/free-icon/github-logo_25231
+          MATTERMOST_ICON_URL: https://cdn-icons-png.flaticon.com/512/25/25231.png
