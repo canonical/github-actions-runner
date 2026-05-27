@@ -3,6 +3,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 1' # every monday at midnight
+
+permissions:
+  issues: write # Required to label and close stale issues via actions/stale
+
 jobs:
   stale:
     runs-on: ubuntu-latest
