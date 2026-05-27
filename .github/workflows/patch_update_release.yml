@@ -9,6 +9,10 @@ on:
       - "patches/runner-sdk8-*.patch"
       - "patches/last_processed_tag.txt"
 
+permissions:
+  contents: write # Required to push patch updates and release branches
+  pull-requests: write # Required to create pull requests via peter-evans/create-pull-request
+
 jobs:
   update-patches:
     runs-on: ubuntu-latest
