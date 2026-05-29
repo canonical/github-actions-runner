@@ -337,6 +337,11 @@ namespace GitHub.Runner.Worker
             }
 
             step.ExecutionContext = Root.CreatePostChild(step.DisplayName, IntraActionState, siblingScopeName);
+            if (step is JobExtensionRunner)
+            {
+                step.ExecutionContext.StepTelemetry.Type = "runner";
+                step.ExecutionContext.StepTelemetry.Action = step.DisplayName.ToLowerInvariant().Replace(' ', '_');
+            }
             Root.PostJobSteps.Push(step);
         }
 
