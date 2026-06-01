@@ -1,0 +1,19 @@
+diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
+index 0e08e65..5a69a2f 100755
+--- a/src/Misc/externals.sh
++++ b/src/Misc/externals.sh
+@@ -7,6 +7,7 @@ NODE_ALPINE_URL=https://github.com/actions/alpine_nodejs/releases/download
+ # When you update Node versions you must also create a new release of alpine_nodejs at that updated version.
+ # Follow the instructions here: https://github.com/actions/alpine_nodejs?tab=readme-ov-file#getting-started
+ NODE20_VERSION="20.20.2"
++NODE22_VERSION="22.22.3"
+ NODE24_VERSION="24.15.0"
+ 
+ get_abs_path() {
+@@ -186,4 +187,5 @@ fi
+ 
+ if [[ "$PACKAGERUNTIME" == "linux-arm" ]]; then
+     acquireExternalTool "$NODE_URL/v${NODE20_VERSION}/node-v${NODE20_VERSION}-linux-armv7l.tar.gz" node20 fix_nested_dir
++    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
+ fi
+# From upstream release: v2.334.0
