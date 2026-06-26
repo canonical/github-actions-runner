@@ -54,9 +54,10 @@ jobs:
       linux-arm64-sha: ${{ steps.sha.outputs.linux-arm64-sha256 }}
       linux-s390x-sha: ${{ steps.sha.outputs.linux-s390x-sha256 }}
       linux-ppc64le-sha: ${{ steps.sha.outputs.linux-ppc64le-sha256 }}
+      linux-arm-sha: ${{ steps.sha.outputs.linux-arm-sha256 }}
     strategy:
       matrix:
-        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64 ]
+        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64, linux-arm ]
         include:
         - runtime: linux-s390x
           runs_on: s390x
@@ -72,6 +73,10 @@ jobs:
         - runtime: linux-arm64
           runs_on: arm64
 
+        - runtime: linux-arm
+          runs_on: arm
+          patch_tag: arm
+
     runs-on: [ self-hosted, noble, "${{ matrix.runs_on }}" ]
     steps:
     - uses: actions/checkout@v4
@@ -80,7 +85,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
     - name: Apply patches
-      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le'
+      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm'
       run: |
         git apply patches/runner-sdk8-${{ matrix.patch_tag }}.patch
 
@@ -161,6 +166,12 @@ jobs:
         name: runner-packages-linux-s390x
         path: ./
 
+    - name: Download Artifact (linux-arm)
+      uses: actions/download-artifact@v4
+      with:
+        name: runner-packages-linux-arm
+        path: ./
+
     # Create ReleaseNote file
     - name: Create ReleaseNote
       id: releaseNote
@@ -175,6 +186,7 @@ jobs:
           releaseNote = releaseNote.replace(/<LINUX_ARM64_SHA>/g, '${{needs.build.outputs.linux-arm64-sha}}')
           releaseNote = releaseNote.replace(/<LINUX_PPC64LE_SHA>/g, '${{needs.build.outputs.linux-ppc64le-sha}}')
           releaseNote = releaseNote.replace(/<LINUX_S390X_SHA>/g, '${{needs.build.outputs.linux-s390x-sha}}')
+          releaseNote = releaseNote.replace(/<LINUX_ARM_SHA>/g, '${{needs.build.outputs.linux-arm-sha}}')
           console.log(releaseNote)
           core.setOutput('version', runnerVersion);
           core.setOutput('note', releaseNote);
@@ -186,6 +198,7 @@ jobs:
         echo "${{needs.build.outputs.linux-arm64-sha}}  actions-runner-linux-arm64-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
         echo "${{needs.build.outputs.linux-ppc64le-sha}}  actions-runner-linux-ppc64le-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
         echo "${{needs.build.outputs.linux-s390x-sha}}  actions-runner-linux-s390x-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
+        echo "${{needs.build.outputs.linux-arm-sha}}  actions-runner-linux-arm-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
 
     # Create GitHub release
     - uses: actions/create-release@master
@@ -237,6 +250,16 @@ jobs:
         upload_url: ${{ steps.createRelease.outputs.upload_url }}
         asset_path: ${{ github.workspace }}/actions-runner-linux-s390x-${{ steps.releaseNote.outputs.version }}.tar.gz
         asset_name: actions-runner-linux-s390x-${{ steps.releaseNote.outputs.version }}.tar.gz
+        asset_content_type: application/octet-stream
+
+    - name: Upload Release Asset (linux-arm)
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.createRelease.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/actions-runner-linux-arm-${{ steps.releaseNote.outputs.version }}.tar.gz
+        asset_name: actions-runner-linux-arm-${{ steps.releaseNote.outputs.version }}.tar.gz
         asset_content_type: application/octet-stream
 
     - uses: mattermost/action-mattermost-notify@master
