@@ -21,6 +21,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Persist the PE bot PAT (not the default GITHUB_TOKEN) so the
+          # release-branch push triggers Runner CD (release.yml). Pushes
+          # authenticated with GITHUB_TOKEN do not trigger downstream workflows.
+          token: ${{ secrets.PE_BOT_PAT }}
 
       - name: Clone upstream runner repository
         run: git clone --tags https://github.com/actions/runner.git upstream-runner
@@ -163,7 +167,7 @@ jobs:
         if: steps.process-arches.outputs.successful_arches != ''
         run: |
           git checkout -b releases/${{ steps.get-tags.outputs.LATEST_TAG }}
-          git add . && git commit -m "Create release ${{steps.get-tags.outputs.LATEST_TAG}}"
+          git add . && git commit -m "Create release ${{ steps.get-tags.outputs.LATEST_TAG }}"
           git push -u origin releases/${{ steps.get-tags.outputs.LATEST_TAG }}
 
       - uses: mattermost/action-mattermost-notify@master
