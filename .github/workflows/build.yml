@@ -96,6 +96,7 @@ jobs:
         DOCKER=docker
         if ! docker info >/dev/null 2>&1; then DOCKER="sudo docker"; fi
         $DOCKER run --rm --platform linux/arm/v7 \
+          -e RUNNER_ALLOW_RUNASROOT=1 \
           -v "$(pwd)/package_test:/runner" -w /runner \
           arm32v7/ubuntu:noble \
           bash -c 'set -e; apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libicu74 libatomic1 ca-certificates >/dev/null; ./config.sh --version'
