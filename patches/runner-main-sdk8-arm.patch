@@ -1,0 +1,153 @@
+diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
+index 46384bb..fe7c4df 100755
+--- a/src/Misc/externals.sh
++++ b/src/Misc/externals.sh
+@@ -7,6 +7,7 @@ NODE_ALPINE_URL=https://github.com/actions/alpine_nodejs/releases/download
+ # When you update Node versions you must also create a new release of alpine_nodejs at that updated version.
+ # Follow the instructions here: https://github.com/actions/alpine_nodejs?tab=readme-ov-file#getting-started
+ NODE20_VERSION="20.20.2"
++NODE22_VERSION="22.22.3"
+ NODE24_VERSION="24.17.0"
+ 
+ get_abs_path() {
+@@ -186,4 +187,5 @@ fi
+ 
+ if [[ "$PACKAGERUNTIME" == "linux-arm" ]]; then
+     acquireExternalTool "$NODE_URL/v${NODE20_VERSION}/node-v${NODE20_VERSION}-linux-armv7l.tar.gz" node20 fix_nested_dir
++    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
+ fi
+diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
+index 8536e94..b68a627 100644
+--- a/src/Runner.Common/Constants.cs
++++ b/src/Runner.Common/Constants.cs
+@@ -188,6 +188,7 @@ namespace GitHub.Runner.Common
+                 // Node versions
+                 public static readonly string Node20 = "node20";
+                 public static readonly string Node24 = "node24";
++                public static readonly string Node22 = "node22";
+ 
+                 // Environment variables for controlling node version selection
+                 public static readonly string ForceNode24Variable = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24";
+diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
+index d87224f..07d822f 100644
+--- a/src/Runner.Common/Util/NodeUtil.cs
++++ b/src/Runner.Common/Util/NodeUtil.cs
+@@ -144,7 +144,7 @@ namespace GitHub.Runner.Common.Util
+ 
+                 if (string.Equals(preferredVersion, Constants.Runner.NodeMigration.Node24, StringComparison.OrdinalIgnoreCase))
+                 {
+-                    return (Constants.Runner.NodeMigration.Node20, deprecationWarning);
++                    return (Constants.Runner.NodeMigration.Node22, deprecationWarning);
+                 }
+ 
+                 return (preferredVersion, deprecationWarning);
+@@ -153,7 +153,7 @@ namespace GitHub.Runner.Common.Util
+             // Legacy behavior: fall back to node20 if node24 was requested on ARM32
+             if (string.Equals(preferredVersion, Constants.Runner.NodeMigration.Node24, StringComparison.OrdinalIgnoreCase))
+             {
+-                return (Constants.Runner.NodeMigration.Node20, "Node 24 is not supported on Linux ARM32 platforms. Falling back to Node 20.");
++                return (Constants.Runner.NodeMigration.Node22, "Node 24 is not supported on Linux ARM32 platforms. Falling back to Node 22.");
+             }
+ 
+             return (preferredVersion, null);
+diff --git a/src/Test/L0/Worker/StepHostNodeVersionL0.cs b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
+index 1c626c5..68d04f5 100644
+--- a/src/Test/L0/Worker/StepHostNodeVersionL0.cs
++++ b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
+@@ -34,8 +34,8 @@ namespace GitHub.Runner.Common.Tests.Worker
+ 
+             if (isArm32 && isLinux)
+             {
+-                // Should downgrade to node20 on ARM32 Linux
+-                Assert.Equal("node20", nodeVersion);
++                // Should use node22 on ARM32 Linux (node24 is unavailable)
++                Assert.Equal("node22", nodeVersion);
+                 Assert.NotNull(warningMessage);
+                 Assert.Contains("Node 24 is not supported on Linux ARM32 platforms", warningMessage);
+             }
+@@ -74,7 +74,7 @@ namespace GitHub.Runner.Common.Tests.Worker
+ 
+             if (isArm32 && isLinux)
+             {
+-                Assert.Equal("node20", nodeVersion);
++                Assert.Equal("node22", nodeVersion);
+                 Assert.NotNull(warningMessage);
+                 Assert.Contains("deprecated", warningMessage);
+                 Assert.Contains("no longer be supported", warningMessage);
+@@ -178,7 +178,7 @@ namespace GitHub.Runner.Common.Tests.Worker
+ 
+             if (isArm32 && isLinux)
+             {
+-                Assert.Equal("node20", nodeVersion);
++                Assert.Equal("node22", nodeVersion);
+                 Assert.NotNull(warningMessage);
+                 Assert.Contains(customDate, warningMessage);
+                 Assert.DoesNotContain(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
+@@ -205,7 +205,7 @@ namespace GitHub.Runner.Common.Tests.Worker
+ 
+             if (isArm32 && isLinux)
+             {
+-                Assert.Equal("node20", nodeVersion);
++                Assert.Equal("node22", nodeVersion);
+                 Assert.NotNull(warningMessage);
+                 Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
+             }
+diff --git a/src/Runner.Worker/Handlers/HandlerFactory.cs b/src/Runner.Worker/Handlers/HandlerFactory.cs
+index 8044f09..1ff2a02 100644
+--- a/src/Runner.Worker/Handlers/HandlerFactory.cs
++++ b/src/Runner.Worker/Handlers/HandlerFactory.cs
+@@ -33,6 +33,12 @@ namespace GitHub.Runner.Worker.Handlers
+                 string.Equals(finalNodeVersion, Constants.Runner.NodeMigration.Node20, StringComparison.OrdinalIgnoreCase);
+         }
+ 
++        internal static bool ShouldTrackAsDeprecatedNode20(bool warnOnNode20, string finalNodeVersion)
++        {
++            return warnOnNode20 &&
++                string.Equals(finalNodeVersion, Constants.Runner.NodeMigration.Node20, StringComparison.OrdinalIgnoreCase);
++        }
++
+         public IHandler Create(
+             IExecutionContext executionContext,
+             Pipelines.ActionStepDefinitionReference action,
+@@ -122,7 +128,7 @@ namespace GitHub.Runner.Worker.Handlers
+                             // Action is on node20 because ARM32 can't run node24
+                             executionContext.Global.Arm32Node20Actions?.Add(actionName);
+                         }
+-                        else if (warnOnNode20)
++                        else if (ShouldTrackAsDeprecatedNode20(warnOnNode20, finalNodeVersion))
+                         {
+                             // Action is still running on node20 (general case)
+                             executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
+diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
+index 421c921..ca1acb8 100644
+--- a/src/Test/L0/Worker/HandlerFactoryL0.cs
++++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
+@@ -869,5 +869,27 @@ namespace GitHub.Runner.Common.Tests.Worker
+ 
+             Assert.Equal(expected, actual);
+         }
++
++        [Theory]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Worker")]
++        [InlineData(true, "node20", true)]
++        [InlineData(true, "node22", false)]
++        [InlineData(true, "node24", false)]
++        [InlineData(false, "node20", false)]
++        public void ShouldTrackAsDeprecatedNode20_OnlyTracksNode20(
++            bool warnOnNode20,
++            string finalNodeVersion,
++            bool expected)
++        {
++            // On Linux ARM32, node24-targeted actions resolve to node22 (not node20).
++            // The deprecated-node20 annotation must only apply to actions actually
++            // running on node20, otherwise node22-executed actions are mislabeled.
++            bool actual = HandlerFactory.ShouldTrackAsDeprecatedNode20(
++                warnOnNode20,
++                finalNodeVersion);
++
++            Assert.Equal(expected, actual);
++        }
+     }
+ }
+# From upstream commit: c814d7ca46f403a860f84c4e54b78c5a2d17e045

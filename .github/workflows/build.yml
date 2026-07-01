@@ -18,7 +18,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64 ]
+        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64, linux-arm ]
         include:
 
         - runtime: linux-x64
@@ -26,6 +26,10 @@ jobs:
 
         - runtime: linux-arm64
           runs_on: arm64
+
+        - runtime: linux-arm
+          runs_on: arm64
+          patch_tag: arm
 
         - runtime: linux-ppc64le
           runs_on: ppc64le
@@ -43,7 +47,7 @@ jobs:
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
     - name: Apply patches
-      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le'
+      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm'
       run: |
         git apply patches/runner-main-sdk8-${{ matrix.patch_tag }}.patch
 
