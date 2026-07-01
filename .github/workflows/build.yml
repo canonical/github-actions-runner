@@ -84,9 +84,9 @@ jobs:
       working-directory: src
 
     # linux-arm produces armv7l (32-bit) binaries that cannot execute on the
-    # arm64 build host, so smoke-test the package inside a 32-bit arm container.
-    # This also exercises the host's AArch32 userspace, matching how armhf
-    # runners are actually hosted in production.
+    # arm64 build host directly, so smoke-test the package inside a 32-bit arm container.
+    # On arm64 hosts with native AArch32 support this runs natively; if binfmt/qemu-user
+    # emulation is configured on the runner, it may run under emulation instead.
     - name: Test package (arm32v7 container)
       if: github.event_name != 'pull_request' && matrix.runtime == 'linux-arm'
       run: |
