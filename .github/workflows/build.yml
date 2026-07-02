@@ -76,13 +76,31 @@ jobs:
       working-directory: src
 
     - name: Test package
-      if: github.event_name != 'pull_request'
+      if: github.event_name != 'pull_request' && matrix.runtime != 'linux-arm'
       run: |
         mkdir package_test
         tar -xvzf ../_package/*.tar.gz -C package_test
         ./package_test/config.sh --version
       working-directory: src
-        
+
+    # linux-arm produces armv7l (32-bit) binaries that cannot execute on the
+    # arm64 build host directly, so smoke-test the package inside a 32-bit arm container.
+    # On arm64 hosts with native AArch32 support this runs natively; if binfmt/qemu-user
+    # emulation is configured on the runner, it may run under emulation instead.
+    - name: Test package (arm32v7 container)
+      if: github.event_name != 'pull_request' && matrix.runtime == 'linux-arm'
+      run: |
+        mkdir package_test
+        tar -xzf ../_package/*.tar.gz -C package_test
+        # Use sudo only if the runner user can't reach the Docker daemon directly.
+        DOCKER=docker
+        if ! docker info >/dev/null 2>&1; then DOCKER="sudo docker"; fi
+        $DOCKER run --rm --platform linux/arm/v7 \
+          -e RUNNER_ALLOW_RUNASROOT=1 \
+          -v "$(pwd)/package_test:/runner" -w /runner \
+          arm32v7/ubuntu:noble \
+          bash -c 'set -e; apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libicu74 libatomic1 ca-certificates >/dev/null; ./config.sh --version'
+      working-directory: src
 
     # Upload runner package tar.gz/zip as artifact
     - name: Publish Artifact
