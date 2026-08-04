@@ -1425,6 +1425,96 @@ namespace GitHub.Runner.Common.Tests.Worker
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Worker")]
+        public async Task WelcomeMessageMasksSecrets()
+        {
+            using (var hc = CreateTestContext())
+            {
+                hc.SecretMasker.AddValue("super-secret-token");
+
+                var port = GetFreePort();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var jobContext = CreateJobContextWithTunnel(cts.Token, port,
+                    overrideWelcomeMessage: true,
+                    welcomeMessage: "Welcome! Token: super-secret-token");
+                await _debugger.StartAsync(jobContext.Object);
+
+                using var client = await ConnectClientAsync(port);
+                var stream = client.GetStream();
+
+                await SendRequestAsync(stream, new Request
+                {
+                    Seq = 1,
+                    Type = "request",
+                    Command = "configurationDone"
+                });
+
+                var configDoneResponse = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"command\":\"configurationDone\"", configDoneResponse);
+
+                var welcomeMsg = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"event\":\"output\"", welcomeMsg);
+                Assert.DoesNotContain("super-secret-token", welcomeMsg);
+                Assert.Contains("***", welcomeMsg);
+
+                await _debugger.StopAsync();
+            }
+        }
+
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Worker")]
+        public async Task WelcomeMessageStripsControlCharacters()
+        {
+            using (CreateTestContext())
+            {
+                var port = GetFreePort();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var jobContext = CreateJobContextWithTunnel(cts.Token, port,
+                    overrideWelcomeMessage: true,
+                    welcomeMessage: "Wel\u001b[31mcome\u0007\u0000\u009bhere\nnext\tline");
+                await _debugger.StartAsync(jobContext.Object);
+
+                using var client = await ConnectClientAsync(port);
+                var stream = client.GetStream();
+
+                await SendRequestAsync(stream, new Request
+                {
+                    Seq = 1,
+                    Type = "request",
+                    Command = "configurationDone"
+                });
+
+                var configDoneResponse = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"command\":\"configurationDone\"", configDoneResponse);
+
+                var welcomeMsg = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"event\":\"output\"", welcomeMsg);
+
+                var output = JObject.Parse(welcomeMsg)["body"]["output"].ToString();
+                Assert.Equal("Wel[31mcomehere\nnext\tline", output);
+
+                await _debugger.StopAsync();
+            }
+        }
+
+        [Theory]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Worker")]
+        [InlineData(null, "")]
+        [InlineData("", "")]
+        [InlineData("plain text", "plain text")]
+        [InlineData("keep\r\nnewlines\tand tabs", "keep\r\nnewlines\tand tabs")]
+        [InlineData("esc\u001bape", "escape")]
+        [InlineData("bell\u0007null\u0000del\u007f", "bellnulldel")]
+        [InlineData("c1\u0080\u009fchars", "c1chars")]
+        public void SanitizeConsoleTextRemovesControlCharacters(string input, string expected)
+        {
+            Assert.Equal(expected, DapDebugger.SanitizeConsoleText(input));
+        }
+
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Worker")]
         public async Task WelcomeMessageSuppressedWhenOverrideEnabledWithEmptyMessage()
         {
             using (CreateTestContext())
@@ -1566,5 +1656,137 @@ namespace GitHub.Runner.Common.Tests.Worker
                 await _debugger.StopAsync();
             }
         }
+
+        #region Secret masking regression tests
+        //
+        // The DAP transport is a secret-carrying channel that bypasses the job
+        // log's masking, so every user-visible string a DAP producer builds must
+        // go through the runner's SecretMasker at the point of construction (the
+        // raw protocol JSON deliberately isn't masked — see SendMessageInternal).
+        // These tests pin the DapDebugger-owned sinks; DapReplExecutorL0 and
+        // DapVariableProviderL0 cover the REPL and expression sinks.
+
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Worker")]
+        public async Task ErrorResponseMasksSecretsInExceptionMessage()
+        {
+            using (var hc = CreateTestContext())
+            {
+                const string secret = "super-secret-token";
+                hc.SecretMasker.AddValue(secret);
+
+                var port = GetFreePort();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var jobContext = CreateJobContextWithTunnel(cts.Token, port);
+                await _debugger.StartAsync(jobContext.Object);
+
+                using var client = await ConnectClientAsync(port);
+                var stream = client.GetStream();
+
+                // A non-integer frameId makes argument deserialization throw, and
+                // Newtonsoft embeds the offending value in the exception message —
+                // exercising the HandleMessageAsync catch-all error response path.
+                await SendRequestAsync(stream, new Request
+                {
+                    Seq = 1,
+                    Type = "request",
+                    Command = "evaluate",
+                    Arguments = JObject.FromObject(new
+                    {
+                        expression = "github.repository",
+                        context = "repl",
+                        frameId = secret
+                    })
+                });
+
+                var response = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"success\":false", response);
+                Assert.Contains("***", response);
+                Assert.DoesNotContain(secret, response, StringComparison.Ordinal);
+
+                await _debugger.StopAsync();
+            }
+        }
+
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Worker")]
+        public async Task ThreadsResponseMasksSecretsInJobName()
+        {
+            using (var hc = CreateTestContext())
+            {
+                const string secret = "super-secret-token";
+                hc.SecretMasker.AddValue(secret);
+
+                var port = GetFreePort();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var jobContext = CreateJobContextWithTunnel(cts.Token, port, jobName: $"build-{secret}");
+                await _debugger.StartAsync(jobContext.Object);
+
+                using var client = await ConnectClientAsync(port);
+                var stream = client.GetStream();
+
+                await SendRequestAsync(stream, new Request
+                {
+                    Seq = 1,
+                    Type = "request",
+                    Command = "threads"
+                });
+
+                var response = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"command\":\"threads\"", response);
+                Assert.Contains("Job: build-***", response);
+                Assert.DoesNotContain(secret, response, StringComparison.Ordinal);
+
+                await _debugger.StopAsync();
+            }
+        }
+
+        [Fact]
+        [Trait("Level", "L0")]
+        [Trait("Category", "Worker")]
+        public async Task StoppedEventMasksSecretsInStepDescription()
+        {
+            using (var hc = CreateTestContext())
+            {
+                const string secret = "super-secret-token";
+                hc.SecretMasker.AddValue(secret);
+
+                var port = GetFreePort();
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                var jobContext = CreateJobContextWithTunnel(cts.Token, port);
+                await _debugger.StartAsync(jobContext.Object);
+
+                var waitTask = _debugger.WaitUntilReadyAsync();
+                using var client = await ConnectClientAsync(port);
+                var stream = client.GetStream();
+                await SendRequestAsync(stream, new Request
+                {
+                    Seq = 1,
+                    Type = "request",
+                    Command = "configurationDone"
+                });
+                await waitTask;
+
+                // configurationDone response + welcome message
+                await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+
+                var step = CreateStep($"Run deploy {secret}");
+                var stepTask = _debugger.OnStepStartingAsync(step.Object);
+
+                var stoppedEvent = await ReadDapMessageAsync(stream, TimeSpan.FromSeconds(5));
+                Assert.Contains("\"event\":\"stopped\"", stoppedEvent);
+                Assert.Contains("Run deploy ***", stoppedEvent);
+                Assert.DoesNotContain(secret, stoppedEvent, StringComparison.Ordinal);
+
+                cts.Cancel();
+                await stepTask;
+                await _debugger.StopAsync();
+            }
+        }
+
+        #endregion
     }
 }
