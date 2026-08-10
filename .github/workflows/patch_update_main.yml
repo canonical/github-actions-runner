@@ -81,17 +81,15 @@ jobs:
           # Check if previous patch exists
           if [ ! -f "../patches/runner-main-sdk8-$arch.patch" ] || \
              ! grep -q "${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}" "../patches/runner-main-sdk8-$arch.patch"; then
-            echo "No valid previous patch for $arch"
-            cd ..
-            continue
+            echo "::error::No valid previous patch for $arch"
+            exit 1
           fi
 
           # Apply previous patch to previous commit
           git checkout ${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}
           if ! git apply --check --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"; then
-            echo "::warning::Previous patch application failed for $arch"
-            cd ..
-            continue
+            echo "::error::Previous patch application failed for $arch"
+            exit 1
           fi
           git apply --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"
           
@@ -101,11 +99,8 @@ jobs:
           # Apply to latest commit
           git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT }}
           if ! git stash apply stash^{/patch-$arch}; then
-            echo "::warning::Stash application failed for $arch on latest commit"
-            git reset --hard
-            git stash drop || true
-            cd ..
-            continue
+            echo "::error::Stash application failed for $arch on latest commit"
+            exit 1
           fi
           
           # Create new patch
