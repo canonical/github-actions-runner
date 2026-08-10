@@ -7,7 +7,7 @@ index 46384bb..fe7c4df 100755
  # Follow the instructions here: https://github.com/actions/alpine_nodejs?tab=readme-ov-file#getting-started
  NODE20_VERSION="20.20.2"
 +NODE22_VERSION="22.22.3"
- NODE24_VERSION="24.17.0"
+ NODE24_VERSION="24.18.0"
  
  get_abs_path() {
 @@ -186,4 +187,5 @@ fi
@@ -150,4 +150,4 @@ index 421c921..ca1acb8 100644
 +        }
      }
  }
-# From upstream commit: c814d7ca46f403a860f84c4e54b78c5a2d17e045
+# From upstream commit: 1ed4f70ee92b31d200d4d446958f47decd2d998f
