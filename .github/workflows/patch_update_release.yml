@@ -79,17 +79,17 @@ jobs:
             # Check if previous patch exists
             if [ ! -f "../patches/runner-sdk8-$arch.patch" ] || \
                ! grep -q "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "../patches/runner-sdk8-$arch.patch"; then
-              echo "No valid previous patch for $arch"
+              echo "::error::No valid previous patch for $arch — patch file missing or does not reference ${{ steps.get-tags.outputs.PREVIOUS_TAG }}"
               cd ..
-              continue
+              exit 1
             fi
 
             # Apply previous patch to previous release
             git checkout ${{ steps.get-tags.outputs.PREVIOUS_TAG }}
             if ! git apply --check --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"; then
-              echo "::warning::Previous patch application failed for $arch"
+              echo "::error::Previous patch application failed for $arch — patch does not apply cleanly to ${{ steps.get-tags.outputs.PREVIOUS_TAG }}"
               cd ..
-              continue
+              exit 1
             fi
             git apply --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"
             
@@ -99,11 +99,11 @@ jobs:
             # Apply to latest release
             git checkout ${{ steps.get-tags.outputs.LATEST_TAG }}
             if ! git stash apply stash^{/patch-$arch}; then
-              echo "::warning::Stash application failed for $arch on ${{ steps.get-tags.outputs.LATEST_TAG }}"
+              echo "::error::Stash application failed for $arch on ${{ steps.get-tags.outputs.LATEST_TAG }} — patch conflicts with upstream changes; manual regeneration required"
               git reset --hard
               git stash drop || true
               cd ..
-              continue
+              exit 1
             fi
             
             # Create new patch
