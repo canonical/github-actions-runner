@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index ab64628..94b1b4e 100755
+index ab646285..94b1b4e9 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -7,6 +7,7 @@ NODE_ALPINE_URL=https://github.com/actions/alpine_nodejs/releases/download
@@ -17,7 +17,7 @@ index ab64628..94b1b4e 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4e851cf..0724833 100644
+index 4e851cfd..07248330 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
@@ -29,7 +29,7 @@ index 4e851cf..0724833 100644
                  // Environment variables for controlling node version selection
                  public static readonly string ForceNode24Variable = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24";
 diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
-index d87224f..07d822f 100644
+index d87224f9..07d822fb 100644
 --- a/src/Runner.Common/Util/NodeUtil.cs
 +++ b/src/Runner.Common/Util/NodeUtil.cs
 @@ -144,7 +144,7 @@ namespace GitHub.Runner.Common.Util
@@ -51,7 +51,7 @@ index d87224f..07d822f 100644
  
              return (preferredVersion, null);
 diff --git a/src/Runner.Worker/Handlers/HandlerFactory.cs b/src/Runner.Worker/Handlers/HandlerFactory.cs
-index 8044f09..1ff2a02 100644
+index 8044f091..1ff2a023 100644
 --- a/src/Runner.Worker/Handlers/HandlerFactory.cs
 +++ b/src/Runner.Worker/Handlers/HandlerFactory.cs
 @@ -33,6 +33,12 @@ namespace GitHub.Runner.Worker.Handlers
@@ -77,7 +77,7 @@ index 8044f09..1ff2a02 100644
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
-index 421c921..ca1acb8 100644
+index 421c9211..ca1acb8b 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
 @@ -869,5 +869,27 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -109,7 +109,7 @@ index 421c921..ca1acb8 100644
      }
  }
 diff --git a/src/Test/L0/Worker/StepHostNodeVersionL0.cs b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
-index 1c626c5..68d04f5 100644
+index 1c626c5d..68d04f5d 100644
 --- a/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 +++ b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 @@ -34,8 +34,8 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -150,4 +150,4 @@ index 1c626c5..68d04f5 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# From upstream commit: 99e01149303b194e08778cdc9c03fa2703d03fb2
+# From upstream commit: 02eb22aaa07eac26f299aa3b46d9e69a478a66d1
