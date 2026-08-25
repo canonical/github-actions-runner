@@ -150,4 +150,4 @@ index 1c626c5d..68d04f5d 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# From upstream commit: e3ccfc1c4fd17af55b0f3f4b6baf6e24299babec
+# From upstream commit: 6a65670776511d80df690cf7ee02b64ca49fdb83
