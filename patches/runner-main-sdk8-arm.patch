@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index ab646285..94b1b4e9 100755
+index c3eff13c..428b16fe 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -7,6 +7,7 @@ NODE_ALPINE_URL=https://github.com/actions/alpine_nodejs/releases/download
@@ -7,7 +7,7 @@ index ab646285..94b1b4e9 100755
  # Follow the instructions here: https://github.com/actions/alpine_nodejs?tab=readme-ov-file#getting-started
  NODE20_VERSION="20.20.2"
 +NODE22_VERSION="22.22.3"
- NODE24_VERSION="24.18.1"
+ NODE24_VERSION="24.19.0"
  
  get_abs_path() {
 @@ -186,4 +187,5 @@ fi
@@ -150,4 +150,4 @@ index 1c626c5d..68d04f5d 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# From upstream commit: 02eb22aaa07eac26f299aa3b46d9e69a478a66d1
+# From upstream commit: e3ccfc1c4fd17af55b0f3f4b6baf6e24299babec
