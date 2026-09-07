@@ -33,11 +33,11 @@ jobs:
                   RUN_ID: ${{ github.event.workflow_run.id }}
               run: |
                   ISSUE_TITLE="CI/CD Pipeline Failed: ${WORKFLOW_NAME}"
-                  ISSUE_BODY=$'The GitHub Actions workflow **'"${WORKFLOW_NAME}"'** has failed.\n\n**Run URL:** '"${RUN_URL}"'\n**Run ID:** '"${RUN_ID}"'\n\nPlease investigate and resolve the issue.'
+                  ISSUE_MARKER="workflow-run-id:${RUN_ID}"
+                  ISSUE_BODY=$'The GitHub Actions workflow **'"${WORKFLOW_NAME}"'** has failed.\n\n**Run URL:** '"${RUN_URL}"'\n**Run ID:** '"${RUN_ID}"'\n\n'"${ISSUE_MARKER}"$'\n\nPlease investigate and resolve the issue.'
 
                   # Check if an issue for this specific workflow run already exists to prevent duplicate spam on retries
-                  EXISTING_ISSUE=$(gh issue list --repo "${REPOSITORY}" --state open --search "${RUN_ID}" --json number --jq '.[0].number // empty')
-
+                  EXISTING_ISSUE=$(gh issue list --repo "${REPOSITORY}" --state open --search "\"${ISSUE_MARKER}\" in:body" --json number --jq '.[0].number // empty')
                   if [ -n "$EXISTING_ISSUE" ]; then
                     echo "An issue for this workflow run already exists (#${EXISTING_ISSUE}). Skipping creation."
                   else
