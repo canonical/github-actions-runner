@@ -41,7 +41,7 @@ jobs:
 
     runs-on: [ self-hosted, noble, "${{ matrix.runs_on }}" ]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Install DotNet SDK
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
