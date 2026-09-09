@@ -144,7 +144,7 @@ jobs:
           git_commit_gpgsign: true
 
       - name: Create pull request to main
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         if: steps.process-arches.outputs.successful_arches != ''
         with:
           # 2025-08-22: Using GitHub's Personal Access Token is required to allow automated workflow
