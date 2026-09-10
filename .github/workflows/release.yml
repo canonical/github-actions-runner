@@ -91,7 +91,11 @@ jobs:
 
     - name: Update DotNet required version pin
       run: |
-        sed -i "s/$( cat src/global.json | jq -r '.sdk.version' )/8.0/" src/global.json
+        # Relax the pinned SDK version down to major.minor (e.g. 8.0.424 -> 8.0,
+        # or 9.0.318 -> 9.0 for the linux-arm .NET 9 patch) so any installed
+        # patch version of that SDK line satisfies global.json.
+        current_version=$( cat src/global.json | jq -r '.sdk.version' )
+        sed -i "s/${current_version}/${current_version%.*}/" src/global.json
 
     # Build runner layout
     - name: Build & Layout Release
