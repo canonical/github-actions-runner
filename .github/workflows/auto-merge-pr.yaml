@@ -41,7 +41,7 @@ jobs:
           PR_NUMBER="${{ steps.get-oldest-pr.outputs.pr_number }}"
           echo "Checking mergeability of PR #$PR_NUMBER..."
 
-          # Get current mergeability status and required CI check results.
+          # Get current mergeability status and CI check results.
           # "mergeable" only tells us there are no merge conflicts - it says
           # nothing about whether CI actually passed, so it must not be used
           # on its own as the merge gate.
