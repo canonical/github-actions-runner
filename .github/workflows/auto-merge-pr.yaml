@@ -46,7 +46,7 @@ jobs:
           # nothing about whether CI actually passed, so it must not be used
           # on its own as the merge gate.
           read -r MERGEABLE STATE <<<"$(gh pr view "$PR_NUMBER" --json mergeable,statusCheckRollup \
-            --jq '[.mergeable, (if (.statusCheckRollup | length) == 0 then "PENDING" elif ([.statusCheckRollup[].conclusion] | all(. == "SUCCESS")) then "SUCCESS" else "FAILURE" end)] | @tsv')"
+            --jq '[.mergeable, (if (.statusCheckRollup | length) == 0 then "PENDING" elif ([.statusCheckRollup[].conclusion] | any(. == null)) then "PENDING" elif ([.statusCheckRollup[].conclusion] | all(. == "SUCCESS")) then "SUCCESS" else "FAILURE" end)] | @tsv')"
           echo "PR #$PR_NUMBER mergeable status: $MERGEABLE, checks: $STATE"
 
           if [ "$MERGEABLE" = "MERGEABLE" ] && [ "$STATE" = "SUCCESS" ]; then
