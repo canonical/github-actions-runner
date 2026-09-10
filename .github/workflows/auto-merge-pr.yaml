@@ -41,11 +41,15 @@ jobs:
           PR_NUMBER="${{ steps.get-oldest-pr.outputs.pr_number }}"
           echo "Checking mergeability of PR #$PR_NUMBER..."
 
-          # Get current mergeability status
-          MERGEABLE=$(gh pr view "$PR_NUMBER" --json mergeable --jq '.mergeable')
-          echo "PR #$PR_NUMBER mergeable status: $MERGEABLE"
+          # Get current mergeability status and CI check results.
+          # "mergeable" only tells us there are no merge conflicts - it says
+          # nothing about whether CI actually passed, so it must not be used
+          # on its own as the merge gate.
+          read -r MERGEABLE STATE <<<"$(gh pr view "$PR_NUMBER" --json mergeable,statusCheckRollup \
+            --jq '[.mergeable, (if (.statusCheckRollup | length) == 0 then "PENDING" elif ([.statusCheckRollup[].conclusion] | any(. == null)) then "PENDING" elif ([.statusCheckRollup[].conclusion] | all(. == "SUCCESS")) then "SUCCESS" else "FAILURE" end)] | @tsv')"
+          echo "PR #$PR_NUMBER mergeable status: $MERGEABLE, checks: $STATE"
 
-          if [ "$MERGEABLE" = "MERGEABLE" ]; then
+          if [ "$MERGEABLE" = "MERGEABLE" ] && [ "$STATE" = "SUCCESS" ]; then
             echo "is_mergeable=true" >> $GITHUB_OUTPUT
             echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           else
