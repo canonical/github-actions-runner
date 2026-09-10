@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index 4947a9bd..6aeb5c00 100755
+index c3eff13c..156dd449 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,9 @@ PRECACHE=$2
@@ -19,10 +19,10 @@ index 4947a9bd..6aeb5c00 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 66b32c24..6442027b 100644
+index 4e851cfd..07248330 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
-@@ -190,6 +190,7 @@ namespace GitHub.Runner.Common
+@@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
                  // Node versions
                  public static readonly string Node20 = "node20";
                  public static readonly string Node24 = "node24";
@@ -152,4 +152,4 @@ index 1c626c5d..68d04f5d 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# From upstream release: v2.336.0
+# From upstream release: v2.337.0
