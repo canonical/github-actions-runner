@@ -77,7 +77,7 @@ jobs:
           runs_on: arm64
           patch_tag: arm
 
-    runs-on: [ self-hosted, noble, "${{ matrix.runs_on }}" ]
+    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on }}" ]
     steps:
     - uses: actions/checkout@v7
 
