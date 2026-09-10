@@ -99,7 +99,7 @@ jobs:
           -e RUNNER_ALLOW_RUNASROOT=1 \
           -v "$(pwd)/package_test:/runner" -w /runner \
           arm32v7/ubuntu:noble \
-          bash -c 'set -e; apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libicu74 libatomic1 ca-certificates >/dev/null; ./config.sh --version'
+          bash -c 'set -e; ./bin/installdependencies.sh >/dev/null; ./config.sh --version'
       working-directory: src
 
     # Upload runner package tar.gz/zip as artifact
