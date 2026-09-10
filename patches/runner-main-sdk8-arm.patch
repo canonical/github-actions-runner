@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index c3eff13c..156dd449 100755
+index b14d2b04..c8acec8a 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,9 @@ PRECACHE=$2
@@ -19,7 +19,7 @@ index c3eff13c..156dd449 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4e851cfd..07248330 100644
+index 4acf4943..a2829810 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
@@ -30,6 +30,19 @@ index 4e851cfd..07248330 100644
  
                  // Environment variables for controlling node version selection
                  public static readonly string ForceNode24Variable = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24";
+diff --git a/src/Runner.Common/Runner.Common.csproj b/src/Runner.Common/Runner.Common.csproj
+index 7f7e4106..e240f07d 100644
+--- a/src/Runner.Common/Runner.Common.csproj
++++ b/src/Runner.Common/Runner.Common.csproj
+@@ -1,7 +1,7 @@
+ <Project Sdk="Microsoft.NET.Sdk">
+ 
+   <PropertyGroup>
+-    <TargetFramework>net8.0</TargetFramework>
++    <TargetFramework>net9.0</TargetFramework>
+     <OutputType>Library</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
 index d87224f9..07d822fb 100644
 --- a/src/Runner.Common/Util/NodeUtil.cs
@@ -52,6 +65,58 @@ index d87224f9..07d822fb 100644
              }
  
              return (preferredVersion, null);
+diff --git a/src/Runner.Listener/Runner.Listener.csproj b/src/Runner.Listener/Runner.Listener.csproj
+index d2b1060d..d7119171 100644
+--- a/src/Runner.Listener/Runner.Listener.csproj
++++ b/src/Runner.Listener/Runner.Listener.csproj
+@@ -1,7 +1,7 @@
+ <Project Sdk="Microsoft.NET.Sdk">
+ 
+   <PropertyGroup>
+-    <TargetFramework>net8.0</TargetFramework>
++    <TargetFramework>net9.0</TargetFramework>
+     <OutputType>Exe</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
+diff --git a/src/Runner.PluginHost/Runner.PluginHost.csproj b/src/Runner.PluginHost/Runner.PluginHost.csproj
+index 81a8d2e4..49272a23 100644
+--- a/src/Runner.PluginHost/Runner.PluginHost.csproj
++++ b/src/Runner.PluginHost/Runner.PluginHost.csproj
+@@ -1,7 +1,7 @@
+ ﻿<Project Sdk="Microsoft.NET.Sdk">
+ 
+   <PropertyGroup>
+-    <TargetFramework>net8.0</TargetFramework>
++    <TargetFramework>net9.0</TargetFramework>
+     <OutputType>Exe</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
+diff --git a/src/Runner.Plugins/Runner.Plugins.csproj b/src/Runner.Plugins/Runner.Plugins.csproj
+index a786cf1c..60d7662b 100644
+--- a/src/Runner.Plugins/Runner.Plugins.csproj
++++ b/src/Runner.Plugins/Runner.Plugins.csproj
+@@ -1,7 +1,7 @@
+ ﻿<Project Sdk="Microsoft.NET.Sdk">
+ 
+   <PropertyGroup>
+-    <TargetFramework>net8.0</TargetFramework>
++    <TargetFramework>net9.0</TargetFramework>
+     <OutputType>Library</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
+diff --git a/src/Runner.Sdk/Runner.Sdk.csproj b/src/Runner.Sdk/Runner.Sdk.csproj
+index 906b78f6..0ec87c35 100644
+--- a/src/Runner.Sdk/Runner.Sdk.csproj
++++ b/src/Runner.Sdk/Runner.Sdk.csproj
+@@ -1,7 +1,7 @@
+ ﻿<Project Sdk="Microsoft.NET.Sdk">
+ 
+   <PropertyGroup>
+-    <TargetFramework>net8.0</TargetFramework>
++    <TargetFramework>net9.0</TargetFramework>
+     <OutputType>Library</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
 diff --git a/src/Runner.Worker/Handlers/HandlerFactory.cs b/src/Runner.Worker/Handlers/HandlerFactory.cs
 index 8044f091..1ff2a023 100644
 --- a/src/Runner.Worker/Handlers/HandlerFactory.cs
@@ -78,8 +143,34 @@ index 8044f091..1ff2a023 100644
                          {
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
+diff --git a/src/Runner.Worker/Runner.Worker.csproj b/src/Runner.Worker/Runner.Worker.csproj
+index 98717965..4bd28817 100644
+--- a/src/Runner.Worker/Runner.Worker.csproj
++++ b/src/Runner.Worker/Runner.Worker.csproj
+@@ -1,7 +1,7 @@
+ <Project Sdk="Microsoft.NET.Sdk">
+ 
+   <PropertyGroup>
+-    <TargetFramework>net8.0</TargetFramework>
++    <TargetFramework>net9.0</TargetFramework>
+     <OutputType>Exe</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
+diff --git a/src/Sdk/Sdk.csproj b/src/Sdk/Sdk.csproj
+index 5db8c10e..49bc0143 100644
+--- a/src/Sdk/Sdk.csproj
++++ b/src/Sdk/Sdk.csproj
+@@ -1,7 +1,7 @@
+ <Project Sdk="Microsoft.NET.Sdk">
+ 
+     <PropertyGroup>
+-        <TargetFramework>net8.0</TargetFramework>
++        <TargetFramework>net9.0</TargetFramework>
+         <OutputType>Library</OutputType>
+         <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+         <!-- <SelfContained>true</SelfContained> -->
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
-index 421c9211..ca1acb8b 100644
+index e8ecdef3..ab106a46 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
 @@ -869,5 +869,27 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -152,4 +243,40 @@ index 1c626c5d..68d04f5d 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# From upstream commit: fb64b9b20d56951bf30c5b7333a128bc25c2d923
+diff --git a/src/Test/Test.csproj b/src/Test/Test.csproj
+index 37ffb5b2..d2a96caa 100644
+--- a/src/Test/Test.csproj
++++ b/src/Test/Test.csproj
+@@ -1,6 +1,6 @@
+ <Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+-        <TargetFramework>net8.0</TargetFramework>
++        <TargetFramework>net9.0</TargetFramework>
+         <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+         <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+         <NoWarn>NU1701;NU1603;NU1603;xUnit2013;SYSLIB0050;SYSLIB0051</NoWarn>
+diff --git a/src/dev.sh b/src/dev.sh
+index 88a64285..e12b1f2c 100755
+--- a/src/dev.sh
++++ b/src/dev.sh
+@@ -17,7 +17,7 @@ LAYOUT_DIR="$SCRIPT_DIR/../_layout"
+ DOWNLOAD_DIR="$SCRIPT_DIR/../_downloads/netcore2x"
+ PACKAGE_DIR="$SCRIPT_DIR/../_package"
+ DOTNETSDK_ROOT="$SCRIPT_DIR/../_dotnetsdk"
+-DOTNETSDK_VERSION="8.0.424"
++DOTNETSDK_VERSION="9.0.318"
+ DOTNETSDK_INSTALLDIR="$DOTNETSDK_ROOT/$DOTNETSDK_VERSION"
+ RUNNER_VERSION=$(cat runnerversion)
+ 
+diff --git a/src/global.json b/src/global.json
+index 9af44fb9..70cfe5c2 100644
+--- a/src/global.json
++++ b/src/global.json
+@@ -1,5 +1,5 @@
+ {
+   "sdk": {
+-    "version": "8.0.424"
++    "version": "9.0.318"
+   }
+ }
+# From upstream commit: 0e345bcaa292fea27a2f218c0edab3d3b93e1060
