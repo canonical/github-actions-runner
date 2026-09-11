@@ -91,11 +91,16 @@ jobs:
 
     - name: Update DotNet required version pin
       run: |
-        # Relax the pinned SDK version down to major.minor (e.g. 8.0.424 -> 8.0,
-        # or 9.0.318 -> 9.0 for the linux-arm .NET 9 patch) so any installed
-        # patch version of that SDK line satisfies global.json.
-        current_version=$( cat src/global.json | jq -r '.sdk.version' )
-        sed -i "s/${current_version}/${current_version%.*}/" src/global.json
+        if [ "${{ matrix.runtime }}" = "linux-arm" ]; then
+          # linux-arm is patched to build against .NET 9 (Y2038/time64 SSL
+          # fix), so relax the pin to major.minor dynamically to match
+          # whatever SDK line the patch bumped global.json to (e.g.
+          # 9.0.318 -> 9.0), instead of the hardcoded 8.0 used below.
+          current_version=$( cat src/global.json | jq -r '.sdk.version' )
+          sed -i "s/${current_version}/${current_version%.*}/" src/global.json
+        else
+          sed -i "s/$( cat src/global.json | jq -r '.sdk.version' )/8.0/" src/global.json
+        fi
 
     # Build runner layout
     - name: Build & Layout Release
