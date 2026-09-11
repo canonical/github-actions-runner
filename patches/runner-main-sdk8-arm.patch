@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index c3eff13c..156dd449 100755
+index b14d2b04..c8acec8a 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,9 @@ PRECACHE=$2
@@ -19,7 +19,7 @@ index c3eff13c..156dd449 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4e851cfd..07248330 100644
+index 4acf4943..a2829810 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
@@ -79,7 +79,7 @@ index 8044f091..1ff2a023 100644
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
-index 421c9211..ca1acb8b 100644
+index e8ecdef3..ab106a46 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
 @@ -869,5 +869,27 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -152,4 +152,4 @@ index 1c626c5d..68d04f5d 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# From upstream commit: fb64b9b20d56951bf30c5b7333a128bc25c2d923
+# From upstream commit: 0e345bcaa292fea27a2f218c0edab3d3b93e1060
