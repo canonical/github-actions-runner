@@ -6,6 +6,7 @@ on:
         workflows:
             - "Runner CI"
             - "Runner CD"
+            - "Update Runner Patches (Commit-to-Commit)"
             - "Update Runner Patches (Release-to-Release)"
         types:
             - completed
