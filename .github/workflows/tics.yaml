@@ -25,7 +25,7 @@ jobs:
           # dev.sh installs its own SDK under _dotnetsdk/<version>
           DOTNET_DIR="$(dirname "$(ls "${GITHUB_WORKSPACE}"/_dotnetsdk/*/dotnet | head -n1)")"
           export PATH="${DOTNET_DIR}:${HOME}/.dotnet/tools:${PATH}"
-          dotnet tool install --global dotnet-coverage
+          dotnet tool update --global dotnet-coverage
           dotnet-coverage collect --output-format cobertura \
             --output "${GITHUB_WORKSPACE}/.coverage/cobertura.xml" "./dev.sh test"
 
