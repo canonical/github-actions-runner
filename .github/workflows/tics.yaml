@@ -11,6 +11,7 @@ permissions:
 jobs:
   tics:
     name: TICS
+    if: github.ref == 'refs/heads/main'
     runs-on: self-hosted-linux-amd64-noble-large-tiobe
     timeout-minutes: 120
     steps:
@@ -33,11 +34,9 @@ jobs:
             --output "${GITHUB_WORKSPACE}/.coverage/cobertura.xml" "./dev.sh test"
 
       - name: Locate .NET SDK
-        if: ${{ !cancelled() }}
         run: echo "DOTNET_ROOT=$(dirname "$(ls "${GITHUB_WORKSPACE}"/_dotnetsdk/*/dotnet | head -n1)")" >> "$GITHUB_ENV"
 
       - name: TICS GitHub Action
-        if: ${{ !cancelled() }}
         uses: tiobe/tics-github-action@v3
         with:
           mode: qserver
