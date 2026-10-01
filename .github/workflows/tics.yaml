@@ -11,7 +11,7 @@ permissions:
 jobs:
   tics:
     name: TICS
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/fix/tics-unset-runner-hooks'
     runs-on: self-hosted-linux-amd64-noble-large-tiobe
     timeout-minutes: 120
     steps:
