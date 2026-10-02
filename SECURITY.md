@@ -28,6 +28,10 @@ The `Secscan` workflow scans the Linux runner tarballs with Canonical's secscan 
 (Trivy). `Runner CD` runs it on the freshly built packages and does not create the
 release if it fails; it also runs weekly against the latest release and on demand.
 
+Each `secscan-report-<runtime>` artifact contains `<runtime>.txt`, the authoritative
+verdict plus the CVE IDs secscan reported, and `<runtime>.report.html`, Trivy's detailed
+report with package and severity.
+
 When it fails, maintainers download the `secscan-report-*` artifacts and either fix the
 issue (usually a .NET or bundled Node.js update) or open a draft
 [GitHub security advisory](../../security/advisories/new) recording the CVE, its severity

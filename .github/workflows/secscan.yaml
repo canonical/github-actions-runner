@@ -58,11 +58,12 @@ jobs:
         if: inputs.source != 'artifacts'
         env:
           RUNTIME: ${{ matrix.runtime }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p packages
-          url="$(curl -fsSL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" \
+          url="$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/latest" \
             | python3 -c 'import json,sys,os; r=os.environ["RUNTIME"]; print(next(a["browser_download_url"] for a in json.load(sys.stdin)["assets"] if a["name"].startswith(f"actions-runner-{r}-") and a["name"].endswith(".tar.gz")))')"
-          curl -fsSL -o "packages/${url##*/}" "$url"
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -o "packages/${url##*/}" "$url"
       - name: Stage package
         id: stage
         env:
@@ -93,7 +94,7 @@ jobs:
             case "$1" in
               0) echo "No CVEs found." ;;
               101) echo "::error::Excluded CVEs are no longer reported; remove them from .github/secscan-exclusions/." ;;
-              1[0-9][0-9]) echo "::error::CVEs found; download the secscan report artifact and triage per SECURITY.md." ;;
+              1[0-9][0-9]) echo "::error::CVEs found; the secscan-report artifact's $ARTIFACT.txt lists them; triage per SECURITY.md." ;;
               *) echo "::error::secscan-client failed (exit $1); re-run the job." ;;
             esac
             return "$1"
@@ -113,7 +114,10 @@ jobs:
             "${exclusions[@]}" \
             --wait-and-print "$TARGET" | tee "reports/$ARTIFACT.txt"
           rc=${PIPESTATUS[0]}
-          secscan-client --batch report --token "$SECSCAN_DIR/$ARTIFACT.token" > "reports/$ARTIFACT.native.txt" 2>&1
+          if (( rc == 0 || rc >= 100 )); then
+            secscan-client --batch report --token "$SECSCAN_DIR/$ARTIFACT.token" \
+              > "reports/$ARTIFACT.report.html" 2> "reports/$ARTIFACT.report.err" || true
+          fi
           set -e
           classify "$rc"
       - name: Upload report

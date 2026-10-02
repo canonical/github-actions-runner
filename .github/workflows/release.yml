@@ -166,7 +166,7 @@ jobs:
     needs: build
     permissions:
       contents: read
-    uses: ./.github/workflows/secscan.yaml
+    uses: ./.github/workflows/secscan.yaml # zizmor: ignore[self-repository]
     with:
       source: artifacts
 
