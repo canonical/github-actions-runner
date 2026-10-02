@@ -25,8 +25,9 @@ expect from you.
 ## Vulnerability scanning
 
 The `Secscan` workflow scans the Linux runner tarballs with Canonical's secscan service
-(Trivy). `Runner CD` runs it on the freshly built packages and does not create the
-release if it fails; it also runs weekly against the latest release and on demand.
+(Trivy). `Runner CD` runs it on the freshly built packages alongside the release; a
+failing scan marks the run as failed but does not block the release. It also runs weekly
+against the latest release and on demand.
 
 Each `secscan-report-<runtime>` artifact contains `<runtime>.txt`, the authoritative
 verdict plus the CVE IDs secscan reported, and `<runtime>.report.html`, Trivy's detailed
@@ -37,7 +38,5 @@ issue (usually a .NET or bundled Node.js update) or open a draft
 [GitHub security advisory](../../security/advisories/new) recording the CVE, its severity
 and the remediation plan. A CVE accepted as a false positive or acceptable risk is added
 to `.github/secscan-exclusions/<runtime>.txt` with a justification comment and a link to
-its advisory. Committing an exclusion does not re-trigger `Runner CD`; dispatch it again on
-the release branch to retry the release. High or critical exclusions need security team
-approval. The SSDLC cycle is set by `SSDLC_CYCLE` in the workflow and must be bumped each
-cycle.
+its advisory. High or critical exclusions need security team approval. The SSDLC cycle is
+set by `SSDLC_CYCLE` in the workflow and must be bumped each cycle.
