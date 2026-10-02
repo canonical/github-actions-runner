@@ -41,11 +41,15 @@ jobs:
         with:
           persist-credentials: false
       - name: Install secscan client
+        env:
+          RUNTIME: ${{ matrix.runtime }}
         run: |
           snap list canonical-secscan-client >/dev/null 2>&1 || sudo snap install canonical-secscan-client
           sudo snap connect canonical-secscan-client:home system:home
-          mkdir -p "$HOME/snap/canonical-secscan-client/common"
-          echo "SECSCAN_DIR=$HOME/snap/canonical-secscan-client/common" >> "$GITHUB_ENV"
+          # Per-job dir so concurrent jobs on one host cannot collide on tokens or cleanup.
+          secscan_dir="$HOME/snap/canonical-secscan-client/common/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNTIME"
+          mkdir -p "$secscan_dir"
+          echo "SECSCAN_DIR=$secscan_dir" >> "$GITHUB_ENV"
           echo "NO_PROXY=${NO_PROXY:+$NO_PROXY,}.internal" >> "$GITHUB_ENV"
           echo "no_proxy=${no_proxy:+$no_proxy,}.internal" >> "$GITHUB_ENV"
       - name: Download built package
@@ -129,4 +133,4 @@ jobs:
           if-no-files-found: warn
       - name: Clean up secscan staging
         if: always()
-        run: rm -rf "${SECSCAN_DIR:?}"/*
+        run: rm -rf "${SECSCAN_DIR:?}"
