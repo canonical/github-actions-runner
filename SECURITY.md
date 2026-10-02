@@ -31,7 +31,8 @@ against the latest release and on demand.
 
 Each `secscan-report-<runtime>` artifact contains `<runtime>.txt`, the authoritative
 verdict plus the CVE IDs secscan reported, and `<runtime>.report.html`, Trivy's detailed
-report, which may not list every CVE secscan reports for archive scans.
+report, which may not list every CVE secscan reports for archive scans. The HTML report is
+best-effort: it is absent when the scan fails before completing.
 
 When it fails, maintainers download the `secscan-report-*` artifacts and either fix the
 issue (usually a .NET or bundled Node.js update) or open a draft

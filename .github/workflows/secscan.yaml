@@ -1,5 +1,5 @@
 # Scans the Linux runner release tarballs with Canonical secscan to meet SEC0025.
-# Called by release.yml on the freshly built packages (blocking the release), and run
+# Called by release.yml on the freshly built packages (report-only; it does not block the release), and run
 # weekly against the latest published release.
 name: Secscan
 
@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
       - name: Install secscan client
         run: |
-          sudo snap install canonical-secscan-client
+          snap list canonical-secscan-client >/dev/null 2>&1 || sudo snap install canonical-secscan-client
           sudo snap connect canonical-secscan-client:home system:home
           mkdir -p "$HOME/snap/canonical-secscan-client/common"
           echo "SECSCAN_DIR=$HOME/snap/canonical-secscan-client/common" >> "$GITHUB_ENV"
