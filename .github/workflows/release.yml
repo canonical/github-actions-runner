@@ -162,6 +162,14 @@ jobs:
         path: |
           _package
 
+  secscan:
+    needs: build
+    permissions:
+      contents: read
+    uses: ./.github/workflows/secscan.yaml # zizmor: ignore[self-repository]
+    with:
+      source: artifacts
+
   release:
     needs: build
     runs-on: ubuntu-latest
