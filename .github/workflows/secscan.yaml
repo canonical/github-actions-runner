@@ -127,3 +127,6 @@ jobs:
           name: secscan-report-${{ matrix.runtime }}
           path: reports/
           if-no-files-found: warn
+      - name: Clean up secscan staging
+        if: always()
+        run: rm -rf "${SECSCAN_DIR:?}"/*
