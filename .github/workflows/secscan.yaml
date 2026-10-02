@@ -44,7 +44,10 @@ jobs:
         env:
           RUNTIME: ${{ matrix.runtime }}
         run: |
-          snap list canonical-secscan-client >/dev/null 2>&1 || sudo snap install canonical-secscan-client
+          # A concurrent job on the same host may win the install race.
+          snap list canonical-secscan-client >/dev/null 2>&1 ||
+            sudo snap install canonical-secscan-client ||
+            snap list canonical-secscan-client >/dev/null 2>&1
           sudo snap connect canonical-secscan-client:home system:home
           # Per-job dir so concurrent jobs on one host cannot collide on tokens or cleanup.
           secscan_dir="$HOME/snap/canonical-secscan-client/common/$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$RUNTIME"
