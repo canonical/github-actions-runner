@@ -26,8 +26,6 @@ env:
 jobs:
   secscan:
     name: Secscan ${{ matrix.runtime }}
-    # Fork PRs must never reach private-endpoint runners.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted-linux-amd64-noble-private-endpoint-medium]
     permissions:
       contents: read
