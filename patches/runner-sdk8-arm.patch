@@ -147,10 +147,10 @@ index 8044f09..9315f61 100644
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
-index 421c921..4ed6c23 100644
+index e8ecdef..e7e3704 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
-@@ -625,6 +625,89 @@ namespace GitHub.Runner.Common.Tests.Worker
+@@ -625,6 +625,88 @@ namespace GitHub.Runner.Common.Tests.Worker
              }
          }
  
@@ -218,10 +218,9 @@ index 421c921..4ed6c23 100644
 +
 +                    if (isArm32Linux)
 +                    {
-+                        // Kill switch bypassed entirely -- step doesn't throw, falls back to the
-+                        // legacy node24->node20 downgrade behavior, and is NOT tracked as a
-+                        // deprecated ARM32 action (no stale annotation at job finalization).
-+                        Assert.Equal("node20", handler.Data.NodeVersion);
++                        // Kill switch bypassed: falls back to node22 (legacy target, node20
++                        // is EOL), and is NOT tracked as a deprecated ARM32 action.
++                        Assert.Equal("node22", handler.Data.NodeVersion);
 +                        Assert.Empty(arm32Actions);
 +                    }
 +                    else
@@ -240,7 +239,7 @@ index 421c921..4ed6c23 100644
          [Fact]
          [Trait("Level", "L0")]
          [Trait("Category", "Worker")]
-@@ -869,5 +952,27 @@ namespace GitHub.Runner.Common.Tests.Worker
+@@ -869,5 +951,27 @@ namespace GitHub.Runner.Common.Tests.Worker
  
              Assert.Equal(expected, actual);
          }
@@ -269,7 +268,7 @@ index 421c921..4ed6c23 100644
      }
  }
 diff --git a/src/Test/L0/Worker/StepHostNodeVersionL0.cs b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
-index 1c626c5..bd7b3d3 100644
+index 1c626c5..b2eedd7 100644
 --- a/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 +++ b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 @@ -34,8 +34,8 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -336,8 +335,8 @@ index 1c626c5..bd7b3d3 100644
 +
 +                if (isArm32 && isLinux)
 +                {
-+                    // Kill switch is bypassed entirely: falls back to legacy node24->node20 downgrade behavior
-+                    Assert.Equal("node20", nodeVersion);
++                    // Kill switch bypassed: falls back to node22 (node24->node20 target is EOL)
++                    Assert.Equal("node22", nodeVersion);
 +                    Assert.NotNull(warningMessage);
 +                    Assert.Contains("Node 24 is not supported on Linux ARM32 platforms", warningMessage);
 +                }
@@ -374,8 +373,8 @@ index 1c626c5..bd7b3d3 100644
 +
 +                if (isArm32 && isLinux)
 +                {
-+                    // No deprecation warning should be emitted once the override is enabled
-+                    Assert.Equal("node20", nodeVersion);
++                    // No deprecation warning; still falls back to node22 (legacy target)
++                    Assert.Equal("node22", nodeVersion);
 +                    Assert.NotNull(warningMessage);
 +                    Assert.DoesNotContain("deprecated", warningMessage);
 +                    Assert.Contains("Node 24 is not supported on Linux ARM32 platforms", warningMessage);
