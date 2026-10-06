@@ -268,7 +268,7 @@ index e8ecdef..e7e3704 100644
      }
  }
 diff --git a/src/Test/L0/Worker/StepHostNodeVersionL0.cs b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
-index 1c626c5..b2eedd7 100644
+index 1c626c5..49bab88 100644
 --- a/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 +++ b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 @@ -34,8 +34,8 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -330,7 +330,7 @@ index 1c626c5..b2eedd7 100644
 +                var (nodeVersion, warningMessage) = Common.Util.NodeUtil.CheckNodeVersionForLinuxArm32(preferredVersion, killArm32: true);
 +
 +                bool isArm32 = RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
-+                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")?.Contains("ARM") == true;
++                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") == "ARM";
 +                bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 +
 +                if (isArm32 && isLinux)
@@ -368,7 +368,7 @@ index 1c626c5..b2eedd7 100644
 +                var (nodeVersion, warningMessage) = Common.Util.NodeUtil.CheckNodeVersionForLinuxArm32(preferredVersion, deprecateArm32: true);
 +
 +                bool isArm32 = RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
-+                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")?.Contains("ARM") == true;
++                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") == "ARM";
 +                bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 +
 +                if (isArm32 && isLinux)
@@ -407,7 +407,7 @@ index 1c626c5..b2eedd7 100644
 +                var (nodeVersion, warningMessage) = Common.Util.NodeUtil.CheckNodeVersionForLinuxArm32(preferredVersion, killArm32: true);
 +
 +                bool isArm32 = RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
-+                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")?.Contains("ARM") == true;
++                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") == "ARM";
 +                bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
 +
 +                if (isArm32 && isLinux)
