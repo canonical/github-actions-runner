@@ -19,7 +19,7 @@ index 90978b6d..ee3fd607 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4acf494..97d3dd8 100644
+index 4acf4943..97d3dd87 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
@@ -57,7 +57,7 @@ index 4ed18b2b..e0c88fbc 100644
      <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
      <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
-index 7b8055b..a40f970 100644
+index 7b8055b9..a40f970d 100644
 --- a/src/Runner.Common/Util/NodeUtil.cs
 +++ b/src/Runner.Common/Util/NodeUtil.cs
 @@ -128,6 +128,19 @@ namespace GitHub.Runner.Common.Util
@@ -176,7 +176,7 @@ index 3f58d586..63a30a3f 100644
      <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
      <SelfContained>true</SelfContained>
 diff --git a/src/Runner.Worker/Handlers/HandlerFactory.cs b/src/Runner.Worker/Handlers/HandlerFactory.cs
-index 8044f09..d1f341e 100644
+index 8044f091..d1f341ed 100644
 --- a/src/Runner.Worker/Handlers/HandlerFactory.cs
 +++ b/src/Runner.Worker/Handlers/HandlerFactory.cs
 @@ -33,6 +33,12 @@ namespace GitHub.Runner.Worker.Handlers
@@ -249,7 +249,7 @@ index e6ba57af..0b5b1d62 100644
          <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
          <!-- <SelfContained>true</SelfContained> -->
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
-index e8ecdef..e7e3704 100644
+index e8ecdef3..e7e37048 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
 @@ -625,6 +625,88 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -370,7 +370,7 @@ index e8ecdef..e7e3704 100644
      }
  }
 diff --git a/src/Test/L0/Worker/StepHostNodeVersionL0.cs b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
-index 1c626c5..0e62333 100644
+index 1c626c5d..0e623335 100644
 --- a/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 +++ b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 @@ -7,15 +7,28 @@ using Xunit;
@@ -576,4 +576,4 @@ index 5821cb36..70cfe5c2 100644
 +    "version": "9.0.318"
    }
  }
-# From upstream commit: 539695a10a5b0fe3af98990525044236bfa67a75
+# From upstream commit: d7bc179baf11a02110b46cfbbc4040f74ac3f60a
