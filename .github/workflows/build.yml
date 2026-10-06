@@ -75,7 +75,16 @@ jobs:
       run: |
         ./dev.sh test
       working-directory: src
-      if: matrix.runtime == 'arm64' || matrix.runtime == 'amd64'
+      # Compares against matrix.runs_on (bare arch names: amd64/arm64/ppc64le/s390x), not
+      # matrix.runtime (always 'linux-*'-prefixed) -- the two were previously confused here,
+      # which meant this condition never evaluated true for any matrix leg and L0 silently
+      # never ran in this workflow. linux-x64/linux-arm64 build/run natively on matching
+      # self-hosted hardware with no patches applied, so they're safe to test directly here.
+      # linux-arm (32-bit armv7l, cross-targeted even though it builds on arm64 hardware),
+      # ppc64le, and s390x are intentionally left out: they require the arm/ppc64le/s390x
+      # patches to be applied first and their 32-bit/cross-arch test-tooling behavior under
+      # dotnet test is not yet validated.
+      if: matrix.runtime == 'linux-x64' || matrix.runtime == 'linux-arm64'
 
     # Create runner package tar.gz/zip
     - name: Package Release
