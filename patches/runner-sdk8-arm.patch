@@ -19,7 +19,7 @@ index c3eff13c..156dd449 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4e851cfd..07248330 100644
+index 4e851cf..d6c4a2d 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
@@ -30,11 +30,41 @@ index 4e851cfd..07248330 100644
  
                  // Environment variables for controlling node version selection
                  public static readonly string ForceNode24Variable = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24";
+@@ -211,6 +212,12 @@ namespace GitHub.Runner.Common
+                 public static readonly string DeprecateLinuxArm32Flag = "actions_runner_deprecate_linux_arm32";
+                 public static readonly string KillLinuxArm32Flag = "actions_runner_kill_linux_arm32";
+ 
++                // Local, runner-process-only override (NOT server-controlled) allowing an operator
++                // of a self-hosted ARM32 fleet to explicitly opt out of the service-driven ARM32
++                // deprecation/kill switch above. Must be set in the runner's own process
++                // environment; it has no effect on, and is not sent by, the Actions service.
++                public static readonly string IgnoreArm32KillSwitchVariable = "RUNNER_IGNORE_ARM32_KILL_SWITCH";
++
+                 // Blog post URL for Node 20 deprecation
+                 public static readonly string Node20DeprecationUrl = "https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/";
+ 
 diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
-index d87224f9..07d822fb 100644
+index d87224f..a580ba3 100644
 --- a/src/Runner.Common/Util/NodeUtil.cs
 +++ b/src/Runner.Common/Util/NodeUtil.cs
-@@ -144,7 +144,7 @@ namespace GitHub.Runner.Common.Util
+@@ -128,6 +128,16 @@ namespace GitHub.Runner.Common.Util
+                 return (preferredVersion, null);
+             }
+ 
++            // Local operator override: ignore the service-driven ARM32 deprecation/kill
++            // switch entirely for this self-hosted fleet. This is deliberately NOT a
++            // server-controlled flag -- it must be explicitly set in the runner's own
++            // process environment, since it overrides a decision made by the Actions service.
++            if (IsArm32KillSwitchOverrideEnabled())
++            {
++                killArm32 = false;
++                deprecateArm32 = false;
++            }
++
+             // ARM32 kill switch: runner should no longer work on this platform
+             if (killArm32)
+             {
+@@ -144,7 +154,7 @@ namespace GitHub.Runner.Common.Util
  
                  if (string.Equals(preferredVersion, Constants.Runner.NodeMigration.Node24, StringComparison.OrdinalIgnoreCase))
                  {
@@ -43,7 +73,7 @@ index d87224f9..07d822fb 100644
                  }
  
                  return (preferredVersion, deprecationWarning);
-@@ -153,7 +153,7 @@ namespace GitHub.Runner.Common.Util
+@@ -153,7 +163,7 @@ namespace GitHub.Runner.Common.Util
              // Legacy behavior: fall back to node20 if node24 was requested on ARM32
              if (string.Equals(preferredVersion, Constants.Runner.NodeMigration.Node24, StringComparison.OrdinalIgnoreCase))
              {
@@ -52,8 +82,29 @@ index d87224f9..07d822fb 100644
              }
  
              return (preferredVersion, null);
+@@ -194,5 +204,20 @@ namespace GitHub.Runner.Common.Util
+ 
+             return info;
+         }
++
++        /// <summary>
++        /// Checks the runner process environment for the local ARM32 kill-switch override.
++        /// This is intentionally only read from the runner's own process environment (never
++        /// from workflow-level variables or the Actions service), since it is meant to be an
++        /// explicit, deliberate decision made by whoever operates the self-hosted ARM32 fleet.
++        /// Exposed publicly so callers that independently read/reuse the deprecateArm32/killArm32
++        /// flags for their own purposes (e.g. deprecation-annotation tracking) can also honor it,
++        /// not just the kill/deprecation logic inside this function.
++        /// </summary>
++        public static bool IsArm32KillSwitchOverrideEnabled()
++        {
++            return StringUtil.ConvertToBoolean(
++                Environment.GetEnvironmentVariable(Constants.Runner.NodeMigration.IgnoreArm32KillSwitchVariable));
++        }
+     }
+ }
 diff --git a/src/Runner.Worker/Handlers/HandlerFactory.cs b/src/Runner.Worker/Handlers/HandlerFactory.cs
-index 8044f091..1ff2a023 100644
+index 8044f09..9315f61 100644
 --- a/src/Runner.Worker/Handlers/HandlerFactory.cs
 +++ b/src/Runner.Worker/Handlers/HandlerFactory.cs
 @@ -33,6 +33,12 @@ namespace GitHub.Runner.Worker.Handlers
@@ -69,7 +120,24 @@ index 8044f091..1ff2a023 100644
          public IHandler Create(
              IExecutionContext executionContext,
              Pipelines.ActionStepDefinitionReference action,
-@@ -122,7 +128,7 @@ namespace GitHub.Runner.Worker.Handlers
+@@ -80,6 +86,16 @@ namespace GitHub.Runner.Worker.Handlers
+                 string node20RemovalDate = executionContext.Global.Variables?.Get(Constants.Runner.NodeMigration.Node20RemovalDateVariable);
+                 string actionName = GetActionName(action);
+ 
++                // Local operator override: also short-circuit here, not just inside
++                // NodeUtil.CheckNodeVersionForLinuxArm32, since deprecateArm32 is reused below
++                // for ShouldTrackAsArm32Node20() deprecation-annotation tracking independently
++                // of that call's return value.
++                if (NodeUtil.IsArm32KillSwitchOverrideEnabled())
++                {
++                    deprecateArm32 = false;
++                    killArm32 = false;
++                }
++
+                 // Check if node20 was explicitly specified in the action
+                 // We don't modify if node24 was explicitly specified
+                 if (string.Equals(nodeData.NodeVersion, Constants.Runner.NodeMigration.Node20, StringComparison.InvariantCultureIgnoreCase))
+@@ -122,7 +138,7 @@ namespace GitHub.Runner.Worker.Handlers
                              // Action is on node20 because ARM32 can't run node24
                              executionContext.Global.Arm32Node20Actions?.Add(actionName);
                          }
@@ -79,10 +147,100 @@ index 8044f091..1ff2a023 100644
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
-index 421c9211..ca1acb8b 100644
+index 421c921..4ed6c23 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
-@@ -869,5 +869,27 @@ namespace GitHub.Runner.Common.Tests.Worker
+@@ -625,6 +625,89 @@ namespace GitHub.Runner.Common.Tests.Worker
+             }
+         }
+ 
++        [Fact]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Worker")]
++        public void ExplicitNode24Action_DeprecateAndKillArm32Flags_IgnoredWhenLocalOverrideEnabled()
++        {
++            // Regression test: verifies the RUNNER_IGNORE_ARM32_KILL_SWITCH override not only
++            // prevents the kill switch from failing the step, but also suppresses the separate
++            // Arm32Node20Actions tracking in HandlerFactory.Create -- otherwise FinalizeJob would
++            // still emit a stale "Linux ARM32 runners are deprecated" annotation even though the
++            // operator explicitly opted out.
++            string overrideVariable = Constants.Runner.NodeMigration.IgnoreArm32KillSwitchVariable;
++            string originalValue = Environment.GetEnvironmentVariable(overrideVariable);
++
++            try
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, "true");
++
++                using (TestHostContext hc = CreateTestContext())
++                {
++                    // Arrange.
++                    var hf = new HandlerFactory();
++                    hf.Initialize(hc);
++
++                    var variables = new Dictionary<string, VariableValue>
++                    {
++                        { Constants.Runner.NodeMigration.DeprecateLinuxArm32Flag, new VariableValue("true") },
++                        { Constants.Runner.NodeMigration.KillLinuxArm32Flag, new VariableValue("true") }
++                    };
++                    Variables serverVariables = new(hc, variables);
++                    var arm32Actions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++
++                    _ec.Setup(x => x.Global).Returns(new GlobalContext()
++                    {
++                        Variables = serverVariables,
++                        EnvironmentVariables = new Dictionary<string, string>(),
++                        Arm32Node20Actions = arm32Actions
++                    });
++
++                    var actionRef = new RepositoryPathReference
++                    {
++                        Name = "actions/checkout",
++                        Ref = "v5"
++                    };
++
++                    // Act - action explicitly declares node24
++                    var data = new NodeJSActionExecutionData();
++                    data.NodeVersion = "node24";
++                    var handler = hf.Create(
++                        _ec.Object,
++                        actionRef,
++                        new Mock<IStepHost>().Object,
++                        data,
++                        new Dictionary<string, string>(),
++                        new Dictionary<string, string>(),
++                        new Variables(hc, new Dictionary<string, VariableValue>()),
++                        "",
++                        new List<JobExtensionRunner>()
++                    ) as INodeScriptActionHandler;
++
++                    bool isArm32Linux = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture == System.Runtime.InteropServices.Architecture.Arm &&
++                                       System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux);
++
++                    if (isArm32Linux)
++                    {
++                        // Kill switch bypassed entirely -- step doesn't throw, falls back to the
++                        // legacy node24->node20 downgrade behavior, and is NOT tracked as a
++                        // deprecated ARM32 action (no stale annotation at job finalization).
++                        Assert.Equal("node20", handler.Data.NodeVersion);
++                        Assert.Empty(arm32Actions);
++                    }
++                    else
++                    {
++                        Assert.Equal("node24", handler.Data.NodeVersion);
++                        Assert.Empty(arm32Actions);
++                    }
++                }
++            }
++            finally
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, originalValue);
++            }
++        }
++
+         [Fact]
+         [Trait("Level", "L0")]
+         [Trait("Category", "Worker")]
+@@ -869,5 +952,27 @@ namespace GitHub.Runner.Common.Tests.Worker
  
              Assert.Equal(expected, actual);
          }
@@ -111,7 +269,7 @@ index 421c9211..ca1acb8b 100644
      }
  }
 diff --git a/src/Test/L0/Worker/StepHostNodeVersionL0.cs b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
-index 1c626c5d..68d04f5d 100644
+index 1c626c5..bd7b3d3 100644
 --- a/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 +++ b/src/Test/L0/Worker/StepHostNodeVersionL0.cs
 @@ -34,8 +34,8 @@ namespace GitHub.Runner.Common.Tests.Worker
@@ -152,17 +310,126 @@ index 1c626c5d..68d04f5d 100644
                  Assert.NotNull(warningMessage);
                  Assert.Contains(Constants.Runner.NodeMigration.Node20RemovalDate, warningMessage);
              }
-# --- .NET 9 upgrade for armv7l (Y2038/time64 SSL fix) ---
-# Ubuntu 24.04+ (noble, resolute, ...) switched armhf/armv7l to 64-bit time_t
-# (the archive-wide "time64" transition). .NET 8's ARM32 SSL/TLS implementation
-# is incompatible with this and fails runner registration with:
-#   "The remote certificate is invalid because of errors in the certificate
-#    chain: NotTimeValid"
-# even though the certificate chain served is valid. This is a known,
-# unfixable-on-.NET-8 issue: https://github.com/actions/runner/issues/3505
-# The fix (adopted from the unmerged community patch
-# https://github.com/actions/runner/pull/3573) is to build the linux-arm
-# runner against .NET 9 instead, which does not have this bug.
+@@ -215,5 +215,119 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 Assert.Null(warningMessage);
+             }
+         }
++
++        [Fact]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Worker")]
++        public void CheckNodeVersionForArm32_KillFlagIgnoredWhenOverrideEnabled()
++        {
++            string preferredVersion = "node24";
++            string overrideVariable = Constants.Runner.NodeMigration.IgnoreArm32KillSwitchVariable;
++            string originalValue = Environment.GetEnvironmentVariable(overrideVariable);
++
++            try
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, "true");
++
++                var (nodeVersion, warningMessage) = Common.Util.NodeUtil.CheckNodeVersionForLinuxArm32(preferredVersion, killArm32: true);
++
++                bool isArm32 = RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
++                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")?.Contains("ARM") == true;
++                bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
++
++                if (isArm32 && isLinux)
++                {
++                    // Kill switch is bypassed entirely: falls back to legacy node24->node20 downgrade behavior
++                    Assert.Equal("node20", nodeVersion);
++                    Assert.NotNull(warningMessage);
++                    Assert.Contains("Node 24 is not supported on Linux ARM32 platforms", warningMessage);
++                }
++                else
++                {
++                    Assert.Equal("node24", nodeVersion);
++                    Assert.Null(warningMessage);
++                }
++            }
++            finally
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, originalValue);
++            }
++        }
++
++        [Fact]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Worker")]
++        public void CheckNodeVersionForArm32_DeprecationFlagIgnoredWhenOverrideEnabled()
++        {
++            string preferredVersion = "node24";
++            string overrideVariable = Constants.Runner.NodeMigration.IgnoreArm32KillSwitchVariable;
++            string originalValue = Environment.GetEnvironmentVariable(overrideVariable);
++
++            try
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, "true");
++
++                var (nodeVersion, warningMessage) = Common.Util.NodeUtil.CheckNodeVersionForLinuxArm32(preferredVersion, deprecateArm32: true);
++
++                bool isArm32 = RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
++                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")?.Contains("ARM") == true;
++                bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
++
++                if (isArm32 && isLinux)
++                {
++                    // No deprecation warning should be emitted once the override is enabled
++                    Assert.Equal("node20", nodeVersion);
++                    Assert.NotNull(warningMessage);
++                    Assert.DoesNotContain("deprecated", warningMessage);
++                    Assert.Contains("Node 24 is not supported on Linux ARM32 platforms", warningMessage);
++                }
++                else
++                {
++                    Assert.Equal("node24", nodeVersion);
++                    Assert.Null(warningMessage);
++                }
++            }
++            finally
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, originalValue);
++            }
++        }
++
++        [Fact]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Worker")]
++        public void CheckNodeVersionForArm32_OverrideHasNoEffectWhenDisabled()
++        {
++            string preferredVersion = "node24";
++            string overrideVariable = Constants.Runner.NodeMigration.IgnoreArm32KillSwitchVariable;
++            string originalValue = Environment.GetEnvironmentVariable(overrideVariable);
++
++            try
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, "false");
++
++                var (nodeVersion, warningMessage) = Common.Util.NodeUtil.CheckNodeVersionForLinuxArm32(preferredVersion, killArm32: true);
++
++                bool isArm32 = RuntimeInformation.ProcessArchitecture == Architecture.Arm ||
++                              Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")?.Contains("ARM") == true;
++                bool isLinux = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
++
++                if (isArm32 && isLinux)
++                {
++                    Assert.Null(nodeVersion);
++                    Assert.NotNull(warningMessage);
++                    Assert.Contains("no longer supported", warningMessage);
++                }
++                else
++                {
++                    Assert.Equal("node24", nodeVersion);
++                    Assert.Null(warningMessage);
++                }
++            }
++            finally
++            {
++                Environment.SetEnvironmentVariable(overrideVariable, originalValue);
++            }
++        }
+     }
+ }
 diff --git a/src/Runner.Common/Runner.Common.csproj b/src/Runner.Common/Runner.Common.csproj
 index 7f7e410..e240f07 100644
 --- a/src/Runner.Common/Runner.Common.csproj
