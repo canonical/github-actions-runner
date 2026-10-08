@@ -21,3 +21,23 @@ assigned and coordinating the release of the fix.
 The [Ubuntu Security disclosure and embargo policy](https://ubuntu.com/security/disclosure-policy)
 contains more information about what you can expect when you contact us, and what we
 expect from you.
+
+## Vulnerability scanning
+
+The `Secscan` workflow scans the Linux runner tarballs with Canonical's secscan service
+(Trivy). `Runner CD` runs it on the freshly built packages alongside the release; a
+failing scan marks the run as failed but does not block the release. It also runs weekly
+against the latest release and on demand.
+
+Each `secscan-report-<runtime>` artifact contains `<runtime>.txt`, the authoritative
+verdict plus the CVE IDs secscan reported, and `<runtime>.report.html`, Trivy's detailed
+report, which may not list every CVE secscan reports for archive scans. The HTML report is
+best-effort: it is absent when the scan fails before completing.
+
+When it fails, maintainers download the `secscan-report-*` artifacts and either fix the
+issue (usually a .NET or bundled Node.js update) or open a draft
+[GitHub security advisory](../../security/advisories/new) recording the CVE, its severity
+and the remediation plan. A CVE accepted as a false positive or acceptable risk is added
+to `.github/secscan-exclusions/<runtime>.txt` with a justification comment and a link to
+its advisory. High or critical exclusions need security team approval. The SSDLC cycle is
+set by `SSDLC_CYCLE` in the workflow and must be bumped each cycle.
