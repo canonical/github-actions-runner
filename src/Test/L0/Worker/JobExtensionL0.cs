@@ -15,17 +15,8 @@ using Pipelines = GitHub.DistributedTask.Pipelines;
 
 namespace GitHub.Runner.Common.Tests.Worker
 {
-    public sealed class JobExtensionL0 : IDisposable
+    public sealed class JobExtensionL0
     {
-        // JobExtension.InitializeJob reads these environment variables directly to decide whether to inject
-        // extra "job started"/"job completed" hook steps. Some self-hosted runner hosts configure these hooks
-        // for their own lifecycle management, and since they're real process-level environment variables they
-        // would otherwise leak into this test process and silently change the expected step count.
-        private const string JobStartedHookVariable = "ACTIONS_RUNNER_HOOK_JOB_STARTED";
-        private const string JobCompletedHookVariable = "ACTIONS_RUNNER_HOOK_JOB_COMPLETED";
-        private readonly string _originalJobStartedHook;
-        private readonly string _originalJobCompletedHook;
-
         private IExecutionContext _jobEc;
         private Pipelines.AgentJobRequestMessage _message;
 
@@ -42,24 +33,6 @@ namespace GitHub.Runner.Common.Tests.Worker
         private Pipelines.Snapshot _requestedSnapshot;
 
         private CancellationTokenSource _tokenSource;
-
-        public JobExtensionL0()
-        {
-            // xUnit creates a new instance per test, so this runs before every test: capture whatever the host
-            // environment has configured and force a clean (unset) state so tests aren't affected by job hooks
-            // that a self-hosted runner's own environment may have configured for itself.
-            _originalJobStartedHook = Environment.GetEnvironmentVariable(JobStartedHookVariable);
-            _originalJobCompletedHook = Environment.GetEnvironmentVariable(JobCompletedHookVariable);
-            Environment.SetEnvironmentVariable(JobStartedHookVariable, null);
-            Environment.SetEnvironmentVariable(JobCompletedHookVariable, null);
-        }
-
-        public void Dispose()
-        {
-            Environment.SetEnvironmentVariable(JobStartedHookVariable, _originalJobStartedHook);
-            Environment.SetEnvironmentVariable(JobCompletedHookVariable, _originalJobCompletedHook);
-        }
-
         private TestHostContext CreateTestContext([CallerMemberName] String testName = "")
         {
             var hc = new TestHostContext(this, testName);
