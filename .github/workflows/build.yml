@@ -73,9 +73,11 @@ jobs:
     # Run tests
     - name: L0
       run: |
+        # The self-hosted runner's job hooks leak into JobExtension L0 tests and add a step
+        unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
         ./dev.sh test
       working-directory: src
-      if: matrix.runtime == 'arm64' || matrix.runtime == 'amd64'
+      if: matrix.runtime == 'linux-x64'
 
     # Create runner package tar.gz/zip
     - name: Package Release
