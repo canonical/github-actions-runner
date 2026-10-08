@@ -75,7 +75,7 @@ jobs:
       run: |
         ./dev.sh test
       working-directory: src
-      if: matrix.runtime == 'linux-x64'
+      if: matrix.runtime == 'linux-x64' || matrix.runtime == 'linux-arm64'
 
     # Create runner package tar.gz/zip
     - name: Package Release
