@@ -55,11 +55,6 @@ namespace GitHub.Runner.Common.Tests.Worker
             }
         }
 
-        // Alpine-container Node support is only implemented for X64 (see StepHost.CheckPlatformForAlpineContainer,
-        // which throws NotSupportedException for any other Constants.Runner.PlatformArchitecture). That value is
-        // baked in at compile time via this same X64/ARM/ARM64 preprocessor symbol, so these tests can only pass
-        // when the Test assembly itself is built targeting X64.
-#if X64
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Worker")]
@@ -113,7 +108,6 @@ namespace GitHub.Runner.Common.Tests.Worker
                 Assert.Equal("node20_alpine", nodeVersion);
             }
         }
-#endif
 
         [Fact]
         [Trait("Level", "L0")]
@@ -169,9 +163,6 @@ namespace GitHub.Runner.Common.Tests.Worker
             }
         }
 
-        // See the comment above DetermineNodeRuntimeVersionInAlpineContainerAsync: Alpine-container Node support
-        // is X64-only in production code, so this test is only valid for X64-targeted Test assembly builds.
-#if X64
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Worker")]
@@ -198,7 +189,6 @@ namespace GitHub.Runner.Common.Tests.Worker
                 Assert.Equal("node24_alpine", nodeVersion);
             }
         }
-#endif
 
         [Fact]
         [Trait("Level", "L0")]
