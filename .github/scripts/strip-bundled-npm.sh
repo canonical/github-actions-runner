@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Fork-only: remove the npm and corepack bundled with Node from a runner layout.
+# The runner only executes externals/node*/bin/node; npm and corepack are unused and pin
+# vulnerable dependencies (tar, minimatch, undici, ...) that would otherwise ship in every
+# package. Lives outside src/ so upstream merges stay clean.
+#
+# Usage: strip-bundled-npm.sh <layout-dir> <runtime>
+set -euo pipefail
+layout="$1"
+runtime="$2"
+
+shopt -s nullglob
+nodes=("$layout"/externals/node*/)
+if [ ${#nodes[@]} -eq 0 ]; then
+  echo "::error::No bundled Node found in $layout/externals"
+  exit 1
+fi
+for d in "${nodes[@]}"; do
+  rm -rf "${d}lib/node_modules/npm" "${d}lib/node_modules/corepack" \
+    "${d}bin/npm" "${d}bin/npx" "${d}bin/corepack"
+done
+if find "$layout/externals" \( -path '*/node_modules/npm' -o -path '*/node_modules/corepack' \) | grep -q .; then
+  echo "::error::npm or corepack is still bundled in $layout/externals"
+  exit 1
+fi
+# linux-arm (armv7l) binaries cannot run on the arm64 build host; the container test covers it.
+if [ "$runtime" != linux-arm ]; then
+  for node in "$layout"/externals/node[0-9]*/bin/node; do
+    case "$node" in *_alpine/*) continue ;; esac
+    echo "$node $("$node" --version)"
+  done
+fi
