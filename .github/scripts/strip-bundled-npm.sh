@@ -34,6 +34,7 @@ for d in "${nodes[@]}"; do
   # the package tests cover those.
   case "$d" in *_alpine/) continue ;; esac
   if [ "$runtime" != linux-arm ]; then
-    echo "${d}bin/node $("${d}bin/node" --version)"
+    version="$("${d}bin/node" --version)"
+    echo "${d}bin/node $version"
   fi
 done
