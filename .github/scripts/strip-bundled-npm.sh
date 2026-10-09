@@ -19,8 +19,10 @@ for d in "${nodes[@]}"; do
   rm -rf "${d}lib/node_modules/npm" "${d}lib/node_modules/corepack" \
     "${d}bin/npm" "${d}bin/npx" "${d}bin/corepack"
 done
-if find "$layout/externals" \( -path '*/node_modules/npm' -o -path '*/node_modules/corepack' \) | grep -q .; then
-  echo "::error::npm or corepack is still bundled in $layout/externals"
+leftover="$(find "$layout/externals" \( -path '*/node_modules/npm' -o -path '*/node_modules/corepack' \
+  -o -path '*/bin/npm' -o -path '*/bin/npx' -o -path '*/bin/corepack' \) -print -quit)"
+if [ -n "$leftover" ]; then
+  echo "::error::npm or corepack is still bundled in $layout/externals: $leftover"
   exit 1
 fi
 # linux-arm (armv7l) binaries cannot run on the arm64 build host; the container test covers it.
