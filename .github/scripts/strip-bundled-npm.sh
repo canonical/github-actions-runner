@@ -25,10 +25,15 @@ if [ -n "$leftover" ]; then
   echo "::error::npm or corepack is still bundled in $layout/externals: $leftover"
   exit 1
 fi
-# linux-arm (armv7l) binaries cannot run on the arm64 build host; the container test covers it.
-if [ "$runtime" != linux-arm ]; then
-  for node in "$layout"/externals/node[0-9]*/bin/node; do
-    case "$node" in *_alpine/*) continue ;; esac
-    echo "$node $("$node" --version)"
-  done
-fi
+for d in "${nodes[@]}"; do
+  if [ ! -x "${d}bin/node" ]; then
+    echo "::error::${d}bin/node is missing"
+    exit 1
+  fi
+  # Alpine builds need musl, and linux-arm (armv7l) cannot run on the arm64 build host;
+  # the package tests cover those.
+  case "$d" in *_alpine/) continue ;; esac
+  if [ "$runtime" != linux-arm ]; then
+    echo "${d}bin/node $("${d}bin/node" --version)"
+  fi
+done
