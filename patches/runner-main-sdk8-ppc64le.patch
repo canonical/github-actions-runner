@@ -127,7 +127,7 @@ index 97273a1a..78f78701 100644
                          throw new NotSupportedException(); // Should never reach here.
                  }
 diff --git a/src/Sdk/Sdk.csproj b/src/Sdk/Sdk.csproj
-index 6e77d4bc..a4580c60 100644
+index 8058f761..53f83c36 100644
 --- a/src/Sdk/Sdk.csproj
 +++ b/src/Sdk/Sdk.csproj
 @@ -4,7 +4,7 @@
@@ -201,7 +201,7 @@ index bac7d41d..d924f65d 100644
          [Trait("Level", "L0")]
          [Trait("Category", "Worker")]
 diff --git a/src/Test/Test.csproj b/src/Test/Test.csproj
-index 843071c8..40407c7f 100644
+index 5ad39f3c..183f5ab7 100644
 --- a/src/Test/Test.csproj
 +++ b/src/Test/Test.csproj
 @@ -2,6 +2,10 @@
@@ -284,4 +284,4 @@ index 056a312e..3f9a3679 100644
          <Exec Command="%22$(DesktopMSBuild)%22 Runner.Service/Windows/RunnerService.csproj /p:Configuration=$(BUILDCONFIG) /p:PackageRuntime=$(PackageRuntime) /p:OutputPath=%22$(MSBuildProjectDirectory)/../_layout/bin%22" ConsoleToMSBuild="true" Condition="'$(PackageRuntime)' == 'win-x64' Or '$(PackageRuntime)' == 'win-x86' Or '$(PackageRuntime)' == 'win-arm64'" />
      </Target>
  
-# From upstream commit: 5f0b3ddcc6ee9fe9441e00d55e85b94ea4aad798
+# From upstream commit: 796cc18ffaaafd5cea525d6231f5a8c93c11c603
