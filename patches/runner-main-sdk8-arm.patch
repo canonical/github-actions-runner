@@ -57,10 +57,32 @@ index 4ed18b2b..e0c88fbc 100644
      <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
      <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
-index 7b8055b9..a40f970d 100644
+index 7b8055b9..584e654a 100644
 --- a/src/Runner.Common/Util/NodeUtil.cs
 +++ b/src/Runner.Common/Util/NodeUtil.cs
-@@ -128,6 +128,19 @@ namespace GitHub.Runner.Common.Util
+@@ -39,6 +39,21 @@ namespace GitHub.Runner.Common.Util
+             {
+                 return forcedInternalNodeVersion;
+             }
++
++            // Upstream Node.js no longer publishes armv7l (32-bit ARM) builds for Node 24+,
++            // and this fork's Linux ARM32 externals bundle node22 instead of node24 (see
++            // externals.sh and NodeUtil.CheckNodeVersionForLinuxArm32). Internal runner
++            // tooling that resolves its own node binary via this method -- hashFiles(),
++            // the macOS SIP re-invoker, .js-shell steps, and the runner's own self-checks --
++            // must independently account for that, since none of them go through the
++            // per-action node-version resolution in HandlerFactory/CheckNodeVersionForLinuxArm32.
++            bool isArm32Linux = Constants.Runner.PlatformArchitecture.Equals(Constants.Architecture.Arm) &&
++                                Constants.Runner.Platform.Equals(Constants.OSPlatform.Linux);
++            if (isArm32Linux)
++            {
++                return Constants.Runner.NodeMigration.Node22;
++            }
++
+             return _defaultNodeVersion;
+         }
+         /// <summary>
+@@ -128,6 +143,19 @@ namespace GitHub.Runner.Common.Util
                  return (preferredVersion, null);
              }
  
@@ -80,7 +102,7 @@ index 7b8055b9..a40f970d 100644
              // ARM32 kill switch: runner should no longer work on this platform
              if (killArm32)
              {
-@@ -144,7 +157,7 @@ namespace GitHub.Runner.Common.Util
+@@ -144,7 +172,7 @@ namespace GitHub.Runner.Common.Util
  
                  if (string.Equals(preferredVersion, Constants.Runner.NodeMigration.Node24, StringComparison.OrdinalIgnoreCase))
                  {
@@ -89,7 +111,7 @@ index 7b8055b9..a40f970d 100644
                  }
  
                  return (preferredVersion, deprecationWarning);
-@@ -153,7 +166,7 @@ namespace GitHub.Runner.Common.Util
+@@ -153,7 +181,7 @@ namespace GitHub.Runner.Common.Util
              // Legacy behavior: fall back to node20 if node24 was requested on ARM32
              if (string.Equals(preferredVersion, Constants.Runner.NodeMigration.Node24, StringComparison.OrdinalIgnoreCase))
              {
@@ -98,7 +120,7 @@ index 7b8055b9..a40f970d 100644
              }
  
              return (preferredVersion, null);
-@@ -194,5 +207,24 @@ namespace GitHub.Runner.Common.Util
+@@ -194,5 +222,24 @@ namespace GitHub.Runner.Common.Util
  
              return info;
          }
@@ -248,6 +270,30 @@ index 8058f761..90e6cd61 100644
          <OutputType>Library</OutputType>
          <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
          <!-- <SelfContained>true</SelfContained> -->
+diff --git a/src/Test/L0/Util/NodeUtilL0.cs b/src/Test/L0/Util/NodeUtilL0.cs
+index 0a493c73..15a48afd 100644
+--- a/src/Test/L0/Util/NodeUtilL0.cs
++++ b/src/Test/L0/Util/NodeUtilL0.cs
+@@ -11,10 +11,19 @@ namespace GitHub.Runner.Common.Tests.Util
+         [Theory]
+         [Trait("Level", "L0")]
+         [Trait("Category", "Common")]
++#if ARM
++        // Linux ARM32 bundles node22 (not node24) since upstream Node.js no longer ships
++        // armv7l builds for Node 24+; GetInternalNodeVersion must default accordingly.
++        [InlineData(null, "node22")]
++        [InlineData("node24", "node24")] // Explicit operator override still wins
++        [InlineData("node20", "node20")]
++        [InlineData("node16", "node22")] // Unsupported versions fall back to the platform default
++#else
+         [InlineData(null, "node24")]
+         [InlineData("node24", "node24")]
+         [InlineData("node20", "node20")]
+         [InlineData("node16", "node24")] // Unsupported versions are ignored
++#endif
+         public void TestInternalNodeVersion(string forcedVersion, string expectedVersion)
+         {
+             try
 diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
 index e8ecdef3..e7e37048 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
