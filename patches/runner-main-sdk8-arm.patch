@@ -44,7 +44,7 @@ index 4acf4943..97d3dd87 100644
                  public static readonly string Node20DeprecationUrl = "https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/";
  
 diff --git a/src/Runner.Common/Runner.Common.csproj b/src/Runner.Common/Runner.Common.csproj
-index 4ed18b2b..e0c88fbc 100644
+index 9c087c87..f6e576b2 100644
 --- a/src/Runner.Common/Runner.Common.csproj
 +++ b/src/Runner.Common/Runner.Common.csproj
 @@ -1,7 +1,7 @@
@@ -146,7 +146,7 @@ index 7b8055b9..584e654a 100644
      }
  }
 diff --git a/src/Runner.Listener/Runner.Listener.csproj b/src/Runner.Listener/Runner.Listener.csproj
-index d2b1060d..d7119171 100644
+index b5325000..7244b10f 100644
 --- a/src/Runner.Listener/Runner.Listener.csproj
 +++ b/src/Runner.Listener/Runner.Listener.csproj
 @@ -1,7 +1,7 @@
@@ -245,7 +245,7 @@ index 8044f091..d1f341ed 100644
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
 diff --git a/src/Runner.Worker/Runner.Worker.csproj b/src/Runner.Worker/Runner.Worker.csproj
-index 03290778..efd2b8cd 100644
+index 6a7f36ef..511aa2f5 100644
 --- a/src/Runner.Worker/Runner.Worker.csproj
 +++ b/src/Runner.Worker/Runner.Worker.csproj
 @@ -1,7 +1,7 @@
@@ -258,7 +258,7 @@ index 03290778..efd2b8cd 100644
      <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
      <SelfContained>true</SelfContained>
 diff --git a/src/Sdk/Sdk.csproj b/src/Sdk/Sdk.csproj
-index 8058f761..90e6cd61 100644
+index 13a8cf7a..de3c3218 100644
 --- a/src/Sdk/Sdk.csproj
 +++ b/src/Sdk/Sdk.csproj
 @@ -1,7 +1,7 @@
@@ -622,4 +622,4 @@ index 5821cb36..70cfe5c2 100644
 +    "version": "9.0.318"
    }
  }
-# From upstream commit: 796cc18ffaaafd5cea525d6231f5a8c93c11c603
+# From upstream commit: 9abfe11d2abd9de09d3a8d933d7ed701ea0518a3
