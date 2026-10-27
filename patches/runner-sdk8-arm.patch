@@ -8,7 +8,7 @@ index c385c5ef..6d42de8f 100755
  NODE_ALPINE_URL=https://github.com/actions/alpine_nodejs/releases/download
 +# node22 is only consumed by the linux-arm (armv7l) package; keep it declared here,
 +# away from the NODE20/NODE24 lines that upstream bumps every release.
-+NODE22_VERSION="22.22.3"
++NODE22_VERSION="22.23.4"
  # When you update Node versions you must also create a new release of alpine_nodejs at that updated version.
  # Follow the instructions here: https://github.com/actions/alpine_nodejs?tab=readme-ov-file#getting-started
  NODE20_VERSION="20.20.2"
