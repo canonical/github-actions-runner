@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index 90978b6d..ee3fd607 100755
+index c385c5ef..6d42de8f 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,9 @@ PRECACHE=$2
@@ -44,7 +44,7 @@ index 4acf4943..97d3dd87 100644
                  public static readonly string Node20DeprecationUrl = "https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/";
  
 diff --git a/src/Runner.Common/Runner.Common.csproj b/src/Runner.Common/Runner.Common.csproj
-index 4ed18b2b..e0c88fbc 100644
+index 9c087c87..f6e576b2 100644
 --- a/src/Runner.Common/Runner.Common.csproj
 +++ b/src/Runner.Common/Runner.Common.csproj
 @@ -1,7 +1,7 @@
@@ -146,7 +146,7 @@ index 7b8055b9..584e654a 100644
      }
  }
 diff --git a/src/Runner.Listener/Runner.Listener.csproj b/src/Runner.Listener/Runner.Listener.csproj
-index d2b1060d..d7119171 100644
+index b5325000..7244b10f 100644
 --- a/src/Runner.Listener/Runner.Listener.csproj
 +++ b/src/Runner.Listener/Runner.Listener.csproj
 @@ -1,7 +1,7 @@
@@ -245,7 +245,7 @@ index 8044f091..d1f341ed 100644
                              // Action is still running on node20 (general case)
                              executionContext.Global.DeprecatedNode20Actions?.Add(actionName);
 diff --git a/src/Runner.Worker/Runner.Worker.csproj b/src/Runner.Worker/Runner.Worker.csproj
-index 03290778..efd2b8cd 100644
+index 6a7f36ef..511aa2f5 100644
 --- a/src/Runner.Worker/Runner.Worker.csproj
 +++ b/src/Runner.Worker/Runner.Worker.csproj
 @@ -1,7 +1,7 @@
@@ -258,7 +258,7 @@ index 03290778..efd2b8cd 100644
      <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;linux-arm;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
      <SelfContained>true</SelfContained>
 diff --git a/src/Sdk/Sdk.csproj b/src/Sdk/Sdk.csproj
-index e6ba57af..0b5b1d62 100644
+index 45c8f8f1..af30eb04 100644
 --- a/src/Sdk/Sdk.csproj
 +++ b/src/Sdk/Sdk.csproj
 @@ -1,7 +1,7 @@
@@ -599,27 +599,27 @@ index 843071c8..1cd9aa28 100644
          <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
          <NoWarn>NU1701;NU1603;NU1603;xUnit2013;SYSLIB0050;SYSLIB0051</NoWarn>
 diff --git a/src/dev.sh b/src/dev.sh
-index 5fd2b549..e12b1f2c 100755
+index e4e8d10d..e12b1f2c 100755
 --- a/src/dev.sh
 +++ b/src/dev.sh
 @@ -17,7 +17,7 @@ LAYOUT_DIR="$SCRIPT_DIR/../_layout"
  DOWNLOAD_DIR="$SCRIPT_DIR/../_downloads/netcore2x"
  PACKAGE_DIR="$SCRIPT_DIR/../_package"
  DOTNETSDK_ROOT="$SCRIPT_DIR/../_dotnetsdk"
--DOTNETSDK_VERSION="8.0.425"
+-DOTNETSDK_VERSION="8.0.427"
 +DOTNETSDK_VERSION="9.0.318"
  DOTNETSDK_INSTALLDIR="$DOTNETSDK_ROOT/$DOTNETSDK_VERSION"
  RUNNER_VERSION=$(cat runnerversion)
  
 diff --git a/src/global.json b/src/global.json
-index 5821cb36..70cfe5c2 100644
+index 63e95af8..70cfe5c2 100644
 --- a/src/global.json
 +++ b/src/global.json
 @@ -1,5 +1,5 @@
  {
    "sdk": {
--    "version": "8.0.425"
+-    "version": "8.0.427"
 +    "version": "9.0.318"
    }
  }
-# From upstream release: v2.338.0
+# From upstream release: v2.338.2
