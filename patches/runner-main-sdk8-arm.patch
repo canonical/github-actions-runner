@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index 90978b6d..ee3fd607 100755
+index c385c5ef..6a83be46 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,9 @@ PRECACHE=$2
@@ -19,10 +19,10 @@ index 90978b6d..ee3fd607 100755
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4acf4943..97d3dd87 100644
+index 3c9a1768..d63bdf18 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
-@@ -197,6 +197,7 @@ namespace GitHub.Runner.Common
+@@ -198,6 +198,7 @@ namespace GitHub.Runner.Common
                  // Node versions
                  public static readonly string Node20 = "node20";
                  public static readonly string Node24 = "node24";
@@ -30,7 +30,7 @@ index 4acf4943..97d3dd87 100644
  
                  // Environment variables for controlling node version selection
                  public static readonly string ForceNode24Variable = "FORCE_JAVASCRIPT_ACTIONS_TO_NODE24";
-@@ -211,6 +212,12 @@ namespace GitHub.Runner.Common
+@@ -212,6 +213,12 @@ namespace GitHub.Runner.Common
                  public static readonly string DeprecateLinuxArm32Flag = "actions_runner_deprecate_linux_arm32";
                  public static readonly string KillLinuxArm32Flag = "actions_runner_kill_linux_arm32";
  
@@ -599,27 +599,27 @@ index 5ad39f3c..5cbc9c0d 100644
          <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
          <NoWarn>NU1701;NU1603;NU1603;xUnit2013;SYSLIB0050;SYSLIB0051</NoWarn>
 diff --git a/src/dev.sh b/src/dev.sh
-index 5fd2b549..e12b1f2c 100755
+index e4e8d10d..e12b1f2c 100755
 --- a/src/dev.sh
 +++ b/src/dev.sh
 @@ -17,7 +17,7 @@ LAYOUT_DIR="$SCRIPT_DIR/../_layout"
  DOWNLOAD_DIR="$SCRIPT_DIR/../_downloads/netcore2x"
  PACKAGE_DIR="$SCRIPT_DIR/../_package"
  DOTNETSDK_ROOT="$SCRIPT_DIR/../_dotnetsdk"
--DOTNETSDK_VERSION="8.0.425"
+-DOTNETSDK_VERSION="8.0.427"
 +DOTNETSDK_VERSION="9.0.318"
  DOTNETSDK_INSTALLDIR="$DOTNETSDK_ROOT/$DOTNETSDK_VERSION"
  RUNNER_VERSION=$(cat runnerversion)
  
 diff --git a/src/global.json b/src/global.json
-index 5821cb36..70cfe5c2 100644
+index 63e95af8..70cfe5c2 100644
 --- a/src/global.json
 +++ b/src/global.json
 @@ -1,5 +1,5 @@
  {
    "sdk": {
--    "version": "8.0.425"
+-    "version": "8.0.427"
 +    "version": "9.0.318"
    }
  }
-# From upstream commit: 9abfe11d2abd9de09d3a8d933d7ed701ea0518a3
+# From upstream commit: 4197182ef8f39c719f66038c1bc9b34cd9e9ac9a

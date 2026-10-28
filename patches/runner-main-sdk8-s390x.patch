@@ -16,7 +16,7 @@ index 9c069b12..d26b0dc2 100644
    <!-- Set TRACE/DEBUG vars -->
    <PropertyGroup>
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index 90978b6d..05ed87f3 100755
+index c385c5ef..f708159e 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -187,3 +187,13 @@ fi
@@ -86,7 +86,7 @@ index 14cc6bab..c8ed8b92 100755
  
      if ! [ -x "$(command -v ldconfig)" ]; then
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
-index 4acf4943..5a0d934e 100644
+index 3c9a1768..44083c86 100644
 --- a/src/Runner.Common/Constants.cs
 +++ b/src/Runner.Common/Constants.cs
 @@ -59,7 +59,9 @@ namespace GitHub.Runner.Common
@@ -216,7 +216,7 @@ index 5ad39f3c..183f5ab7 100644
          <NoWarn>NU1701;NU1603;NU1603;xUnit2013;SYSLIB0050;SYSLIB0051</NoWarn>
      </PropertyGroup>
 diff --git a/src/dev.sh b/src/dev.sh
-index 5fd2b549..5f751981 100755
+index e4e8d10d..073026fe 100755
 --- a/src/dev.sh
 +++ b/src/dev.sh
 @@ -54,6 +54,8 @@ elif [[ "$CURRENT_PLATFORM" == 'linux' ]]; then
@@ -284,4 +284,4 @@ index 056a312e..3f9a3679 100644
          <Exec Command="%22$(DesktopMSBuild)%22 Runner.Service/Windows/RunnerService.csproj /p:Configuration=$(BUILDCONFIG) /p:PackageRuntime=$(PackageRuntime) /p:OutputPath=%22$(MSBuildProjectDirectory)/../_layout/bin%22" ConsoleToMSBuild="true" Condition="'$(PackageRuntime)' == 'win-x64' Or '$(PackageRuntime)' == 'win-x86' Or '$(PackageRuntime)' == 'win-arm64'" />
      </Target>
  
-# From upstream commit: 9abfe11d2abd9de09d3a8d933d7ed701ea0518a3
+# From upstream commit: 4197182ef8f39c719f66038c1bc9b34cd9e9ac9a
