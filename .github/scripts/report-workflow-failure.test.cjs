@@ -142,6 +142,30 @@ test('keeps Runner CI and Runner CD reporting separate and deduplicates retries'
     }
 });
 
+// Ordinary failures must not pay for listing the repository's entire issue and pull request history.
+test('uses a targeted run-marker lookup for ordinary failure deduplication', async () => {
+    for (const name of ['Runner CI', 'Runner CD']) {
+        const api = fakeGithub();
+        api.github.rest.issues.listForRepo = async () => { throw new Error('Full issue listing is forbidden'); };
+        await report(api, name, 500);
+        await report(api, name, 500);
+
+        assert.equal(api.issues.length, 1);
+        assert.deepEqual(api.searches, [
+            'repo:canonical/github-actions-runner is:issue is:open "workflow-run-id:500" in:body',
+            'repo:canonical/github-actions-runner is:issue is:open "workflow-run-id:500" in:body',
+        ]);
+    }
+});
+
+// Search failures must not be interpreted as an absent ordinary failure ticket.
+test('propagates ordinary deduplication search errors without creating an issue', async () => {
+    const api = fakeGithub();
+    api.github.rest.search.issuesAndPullRequests = async () => { throw new Error('Search unavailable'); };
+    await assert.rejects(report(api, 'Runner CI', 500), /Search unavailable/);
+    assert.deepEqual(api.issues, []);
+});
+
 // Older reporter versions emitted literal backslash-n sequences rather than real line breaks.
 test('recognizes legacy CI run markers without matching a longer run ID', async () => {
     const api = fakeGithub([
@@ -202,7 +226,7 @@ function report(api, name, id, overrides = {}) {
 }
 
 function fakeGithub(existing = []) {
-    const api = { issues: structuredClone(existing), writes: [], pages: 0 };
+    const api = { issues: structuredClone(existing), writes: [], pages: 0, searches: [] };
     const labels = new Set(['bug']);
     const issues = {
         async listForRepo({ owner, repo, state, per_page, page = 1 }) {
@@ -237,7 +261,17 @@ function fakeGithub(existing = []) {
             return { data: structuredClone(updated) };
         },
     };
-    api.github = { rest: { issues }, async paginate(method, params) {
+    const search = {
+        async issuesAndPullRequests({ q, per_page }) {
+            api.searches.push(q);
+            const marker = q.match(/"(workflow-run-id:\d+)"/)[1];
+            const matches = api.issues.filter(issue => issue.state === 'open' && !issue.pull_request &&
+                (issue.body || '').includes(marker));
+            return { data: { total_count: matches.length, incomplete_results: false,
+                items: structuredClone(matches.slice(0, per_page)) } };
+        },
+    };
+    api.github = { rest: { issues, search }, async paginate(method, params) {
         const result = [];
         for (let page = 1; ; page++) {
             const { data } = await method({ ...params, page });

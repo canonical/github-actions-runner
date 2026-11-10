@@ -16,14 +16,12 @@ async function reportWorkflowFailure({ github, context }) {
         return;
     }
 
-    // REST listing avoids the search index lag between creating a tracker and the next report.
-    const issues = (await github.paginate(github.rest.issues.listForRepo, {
-        ...context.repo, state: 'all', per_page: 100,
-    })).filter(issue => !issue.pull_request).sort((a, b) => a.number - b.number);
-
     if (!PATCH_WORKFLOWS.has(run.name)) {
         const marker = `workflow-run-id:${run.id}`;
-        if (issues.some(issue => issue.state === 'open' &&
+        const { data } = await github.rest.search.issuesAndPullRequests({
+            q: `repo:${repository} is:issue is:open "${marker}" in:body`, per_page: 100,
+        });
+        if (data.items.some(issue =>
             [...(issue.body || '').matchAll(/workflow-run-id:(\d+)/g)]
                 .some(match => Number(match[1]) === run.id))) {
             return;
@@ -35,6 +33,10 @@ async function reportWorkflowFailure({ github, context }) {
         return;
     }
 
+    // REST listing avoids the search index lag between creating a tracker and the next report.
+    const issues = (await github.paginate(github.rest.issues.listForRepo, {
+        ...context.repo, state: 'all', per_page: 100,
+    })).filter(issue => !issue.pull_request).sort((a, b) => a.number - b.number);
     const tracker = issues.find(issue => (issue.body || '').includes(TRACKER_MARKER)) ||
         issues.find(issue => issue.state === 'open' &&
             [...PATCH_WORKFLOWS.keys()].some(name => issue.title === `CI/CD Pipeline Failed: ${name}`));
