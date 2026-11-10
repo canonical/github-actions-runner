@@ -53,6 +53,10 @@
 - [x] Approved design recorded.
 - [x] Plan self-reviewed against the design.
 - [x] Implementation approach confirmed (native execution).
-- [ ] Task 1 complete.
+- [x] Task 1 implementation and independent review complete.
 
-Steps 1–5 verified: 20 Node tests pass; source guards, permissions, module wiring, and max queue checked on parsed YAML; actionlint passes with only its unsupported `queue` schema diagnostic excluded; `git diff --check` passes. Independent review and PR publication remain.
+Steps 1–5 verified: 25 Node tests pass; source guards, permissions, module wiring, and max queue checked on parsed YAML; actionlint passes with only its unsupported `queue` schema diagnostic excluded; `git diff --check` passes. Independent review identified the repository's stale-bot exemption requirement; new regression tests failed before applying the existing `keep` label to patch trackers, then the suite passed. Publication is the final step.
+
+Full runtime suite: `cd src && ./dev.sh test` was attempted and stopped after approximately 12 minutes while provisioning external Node distributions, before any runtime tests ran. No .NET runtime code is changed.
+
+Review limitations: GitHub/Jira mutations and hosted queue execution were not tested live. The documented queue supports up to 100 pending reports. Preservation covers human text read before updating, not concurrent human edits during the API read/write window.

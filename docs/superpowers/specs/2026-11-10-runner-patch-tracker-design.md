@@ -18,6 +18,7 @@ Prevent repeated patch-update failures from creating a new GitHub issue and Jira
 - Maintain separate latest-failure entries without daily comments. Preserve human-authored text outside the managed section and the other workflow's entry.
 - Serialize tracker writes, including creation, without cancelling reporting events. Avoid relying on eventually consistent issue search for identity.
 - Keep closure manual: a successful scheduled run can be a no-op, not evidence that patch processing recovered.
+- Give patch trackers the existing `keep` label so the repository's stale bot does not close them automatically; preserve all other labels.
 - Preserve existing run-based reporting for Runner CI and Runner CD.
 
 ## Constraints and non-goals

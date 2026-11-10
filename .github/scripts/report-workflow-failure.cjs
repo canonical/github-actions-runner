@@ -61,26 +61,40 @@ async function reportWorkflowFailure({ github, context }) {
     body = previous ? body.replace(section, () => entry) : `${body}\n\n${entry}`;
 
     if (tracker) {
+        // The repository's stale bot must not resolve this long-lived tracker automatically.
+        if (!tracker.labels.some(label => (typeof label === 'string' ? label : label.name) === 'keep')) {
+            await ensureLabel(github, context.repo, 'keep');
+            await github.rest.issues.addLabels({ ...context.repo, issue_number: tracker.number, labels: ['keep'] });
+        }
         await github.rest.issues.update({
             ...context.repo, issue_number: tracker.number,
             title: TRACKER_TITLE, body, state: 'open',
         });
     } else {
-        await createIssue(github, context.repo, TRACKER_TITLE, body);
+        await createIssue(github, context.repo, TRACKER_TITLE, body, ['bug', 'ci-failure', 'keep']);
     }
 }
 
 /** Create a labelled failure issue, provisioning the automation label if needed. */
-async function createIssue(github, repo, title, body) {
+async function createIssue(github, repo, title, body, labels = ['bug', 'ci-failure']) {
+    for (const name of labels.filter(name => name !== 'bug')) {
+        await ensureLabel(github, repo, name);
+    }
+    await github.rest.issues.create({ ...repo, title, body, labels });
+}
+
+/** Ensure an automation label exists without overwriting its repository configuration. */
+async function ensureLabel(github, repo, name) {
     try {
-        await github.rest.issues.getLabel({ ...repo, name: 'ci-failure' });
+        await github.rest.issues.getLabel({ ...repo, name });
     } catch (error) {
         if (error.status !== 404) throw error;
         await github.rest.issues.createLabel({
-            ...repo, name: 'ci-failure', description: 'Automated CI/CD pipeline failure', color: 'B60205',
+            ...repo, name,
+            description: name === 'keep' ? 'Exempt from automatic stale closure' : 'Automated CI/CD pipeline failure',
+            color: name === 'keep' ? '0E8A16' : 'B60205',
         });
     }
-    await github.rest.issues.create({ ...repo, title, body, labels: ['bug', 'ci-failure'] });
 }
 
 module.exports = { reportWorkflowFailure };

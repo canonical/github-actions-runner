@@ -15,7 +15,7 @@ test('shares one tracker across recurring failures of both patch workflows', asy
 
     assert.equal(api.issues.length, 1);
     assert.equal(api.issues[0].title, 'Track runner patch-update failures');
-    assert.deepEqual(api.issues[0].labels, ['bug', 'ci-failure']);
+    assert.deepEqual(api.issues[0].labels, ['bug', 'ci-failure', 'keep']);
     assert.match(api.issues[0].body, /runner-patch-main/);
     assert.match(api.issues[0].body, /runner-patch-release/);
     assert.match(api.issues[0].body, /actions\/runs\/501/);
@@ -38,6 +38,23 @@ test('adopts the oldest open exact-title legacy patch issue without closing othe
     assert.match(api.issues.find(i => i.number === 248).body, /runner-patch-failures/);
     assert.equal(api.issues.find(i => i.number === 249).state, 'open');
     assert.equal(api.issues.find(i => i.number === 246).title, `CI/CD Pipeline Failed: ${MAIN} extra`);
+});
+
+// Long-lived trackers must use the repository's stale-bot exemption without losing human labels.
+test('exempts adopted and marked trackers from stale closure while preserving labels', async t => {
+    for (const [name, existing] of [
+        ['legacy', issue(248, `CI/CD Pipeline Failed: ${MAIN}`, { labels: [{ name: 'bug' }, { name: 'investigating' }] })],
+        ['marked', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'bug' }] })],
+        ['already exempt', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'keep' }] })],
+    ]) {
+        await t.test(name, async () => {
+            const api = fakeGithub([existing]);
+            await report(api, MAIN, 500);
+            const names = api.issues[0].labels.map(label => typeof label === 'string' ? label : label.name);
+            assert.ok(names.includes('keep'));
+            for (const label of existing.labels) assert.ok(names.includes(label.name));
+        });
+    }
 });
 
 // Prevent a closed tracker being replaced by a new issue or an unmarked legacy issue.
@@ -117,6 +134,7 @@ test('keeps Runner CI and Runner CD reporting separate and deduplicates retries'
 
         assert.equal(api.issues.length, 2);
         assert.equal(api.issues[0].title, `CI/CD Pipeline Failed: ${name}`);
+        assert.deepEqual(api.issues[0].labels, ['bug', 'ci-failure']);
         assert.match(api.issues[0].body, /workflow-run-id:500/);
         assert.doesNotMatch(api.issues[0].body, /runner-patch-failures/);
     }
@@ -155,12 +173,13 @@ test('ignores events outside the failure reporting boundary', async t => {
 
 // API failures must surface to Actions instead of causing silent loss or duplicate creation.
 test('propagates GitHub API errors', async t => {
-    for (const operation of ['listForRepo', 'getLabel', 'createLabel', 'create', 'update']) {
+    for (const operation of ['listForRepo', 'getLabel', 'createLabel', 'create', 'update', 'addLabels']) {
         await t.test(operation, async () => {
-            const api = fakeGithub(operation === 'update' ? [issue(248, 'Tracker', { body: TRACKER })] : []);
+            const existing = ['update', 'addLabels'].includes(operation);
+            const api = fakeGithub(existing ? [issue(248, 'Tracker', { body: TRACKER })] : []);
             api.github.rest.issues[operation] = async () => { throw new Error('GitHub unavailable'); };
             await assert.rejects(report(api, MAIN, 500), /GitHub unavailable/);
-            assert.equal(api.issues.length, operation === 'update' ? 1 : 0);
+            assert.equal(api.issues.length, existing ? 1 : 0);
         });
     }
 });
@@ -195,6 +214,13 @@ function fakeGithub(existing = []) {
             return { data: { name } };
         },
         async createLabel({ name }) { labels.add(name); return { data: { name } }; },
+        async addLabels({ issue_number, labels: added }) {
+            const updated = api.issues.find(i => i.number === issue_number);
+            assert.ok(updated);
+            updated.labels.push(...added);
+            api.writes.push({ issue_number, labels: added });
+            return { data: structuredClone(updated.labels) };
+        },
         async create(fields) {
             const created = issue(Math.max(0, ...api.issues.map(i => i.number)) + 1, fields.title, fields);
             api.issues.push(created);
