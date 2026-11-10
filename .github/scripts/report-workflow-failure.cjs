@@ -4,6 +4,7 @@ const PATCH_WORKFLOWS = new Map([
 ]);
 const TRACKER_MARKER = '<!-- runner-patch-failures -->';
 const TRACKER_TITLE = 'Track runner patch-update failures';
+const TRACKER_LABELS = ['bug', 'ci-failure', 'keep'];
 
 /** Create or update the issue tracking a trusted failed workflow run. */
 async function reportWorkflowFailure({ github, context }) {
@@ -62,16 +63,20 @@ async function reportWorkflowFailure({ github, context }) {
 
     if (tracker) {
         // The repository's stale bot must not resolve this long-lived tracker automatically.
-        if (!tracker.labels.some(label => (typeof label === 'string' ? label : label.name) === 'keep')) {
-            await ensureLabel(github, context.repo, 'keep');
-            await github.rest.issues.addLabels({ ...context.repo, issue_number: tracker.number, labels: ['keep'] });
+        const existingLabels = new Set(tracker.labels.map(label => typeof label === 'string' ? label : label.name));
+        const missingLabels = TRACKER_LABELS.filter(name => !existingLabels.has(name));
+        for (const name of missingLabels.filter(name => name !== 'bug')) {
+            await ensureLabel(github, context.repo, name);
+        }
+        if (missingLabels.length) {
+            await github.rest.issues.addLabels({ ...context.repo, issue_number: tracker.number, labels: missingLabels });
         }
         await github.rest.issues.update({
             ...context.repo, issue_number: tracker.number,
             title: TRACKER_TITLE, body, state: 'open',
         });
     } else {
-        await createIssue(github, context.repo, TRACKER_TITLE, body, ['bug', 'ci-failure', 'keep']);
+        await createIssue(github, context.repo, TRACKER_TITLE, body, TRACKER_LABELS);
     }
 }
 

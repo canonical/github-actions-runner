@@ -40,19 +40,21 @@ test('adopts the oldest open exact-title legacy patch issue without closing othe
     assert.equal(api.issues.find(i => i.number === 246).title, `CI/CD Pipeline Failed: ${MAIN} extra`);
 });
 
-// Long-lived trackers must use the repository's stale-bot exemption without losing human labels.
-test('exempts adopted and marked trackers from stale closure while preserving labels', async t => {
+// Migration must match new tracker labels without replacing human classification or stale exemptions.
+test('adds missing standard labels to adopted and marked trackers while preserving labels', async t => {
     for (const [name, existing] of [
         ['legacy', issue(248, `CI/CD Pipeline Failed: ${MAIN}`, { labels: [{ name: 'bug' }, { name: 'investigating' }] })],
         ['marked', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'bug' }] })],
         ['already exempt', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'keep' }] })],
+        ['fully labelled', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'bug' }, { name: 'ci-failure' }, { name: 'keep' }] })],
     ]) {
         await t.test(name, async () => {
             const api = fakeGithub([existing]);
             await report(api, MAIN, 500);
             const names = api.issues[0].labels.map(label => typeof label === 'string' ? label : label.name);
-            assert.ok(names.includes('keep'));
+            for (const required of ['bug', 'ci-failure', 'keep']) assert.ok(names.includes(required), required);
             for (const label of existing.labels) assert.ok(names.includes(label.name));
+            if (name === 'fully labelled') assert.ok(api.writes.every(write => !write.labels));
         });
     }
 });
