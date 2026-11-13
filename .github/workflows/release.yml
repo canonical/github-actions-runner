@@ -212,7 +212,10 @@ jobs:
         script: |
           const fs = require('fs');
           const runnerVersion = fs.readFileSync('${{ github.workspace }}/src/runnerversion', 'utf8').replace(/\n$/g, '')
-          var releaseNote = fs.readFileSync('${{ github.workspace }}/releaseNote.md', 'utf8').replace(/<RUNNER_VERSION>/g, runnerVersion)
+          // releaseNote.md is upstream's and is overwritten on every patch sync,
+          // so notes specific to this fork's builds live under .github/.
+          const canonicalNote = fs.readFileSync('${{ github.workspace }}/.github/release-note-canonical.md', 'utf8')
+          var releaseNote = (canonicalNote + fs.readFileSync('${{ github.workspace }}/releaseNote.md', 'utf8')).replace(/<RUNNER_VERSION>/g, runnerVersion)
           releaseNote = releaseNote.replace(/<LINUX_X64_SHA>/g, '${{needs.build.outputs.linux-x64-sha}}')
           releaseNote = releaseNote.replace(/<LINUX_ARM64_SHA>/g, '${{needs.build.outputs.linux-arm64-sha}}')
           releaseNote = releaseNote.replace(/<LINUX_PPC64LE_SHA>/g, '${{needs.build.outputs.linux-ppc64le-sha}}')
