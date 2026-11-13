@@ -37,29 +37,35 @@ async function reportWorkflowFailure({ github, context }) {
     const issues = (await github.paginate(github.rest.issues.listForRepo, {
         ...context.repo, state: 'all', per_page: 100,
     })).filter(issue => !issue.pull_request).sort((a, b) => a.number - b.number);
-    const tracker = issues.find(issue => (issue.body || '').includes(TRACKER_MARKER)) ||
-        issues.find(issue => issue.state === 'open' &&
-            [...PATCH_WORKFLOWS.keys()].some(name => issue.title === `CI/CD Pipeline Failed: ${name}`));
+    const markedTrackers = issues.filter(issue => (issue.body || '').includes(TRACKER_MARKER));
+    const tracker = markedTrackers.find(issue => issue.state === 'open');
     const key = PATCH_WORKFLOWS.get(run.name);
     const start = `<!-- ${key}:start -->`;
     const end = `<!-- ${key}:end -->`;
     const section = new RegExp(`${start}[\\s\\S]*?${end}`);
     let body = tracker?.body || '';
     const previous = body.match(section)?.[0];
-    const previousRun = previous?.match(/workflow-run-id:(\d+) attempt:(\d+)/);
     const attempt = run.run_attempt || 1;
-    if (previousRun && (Number(previousRun[1]) > run.id ||
-        (Number(previousRun[1]) === run.id && Number(previousRun[2]) >= attempt))) {
-        return;
+    // Closed incidents still identify replays, but must never become update targets.
+    for (const incident of markedTrackers) {
+        const previousRun = incident.body.match(section)?.[0].match(/workflow-run-id:(\d+) attempt:(\d+)/);
+        if (previousRun && (Number(previousRun[1]) > run.id ||
+            (Number(previousRun[1]) === run.id && Number(previousRun[2]) >= attempt))) {
+            return;
+        }
     }
 
     const entry = `${start}\n### ${run.name}\n\n` +
         `Latest reported failure: [run ${run.id}, attempt ${attempt}](${run.html_url})\n\n` +
         `<!-- workflow-run-id:${run.id} attempt:${attempt} -->\n${end}`;
-    if (!body.includes(TRACKER_MARKER)) {
-        body += `${body ? '\n\n' : ''}${TRACKER_MARKER}\n\n` +
-            'This issue tracks failures from both runner patch-update workflows. ' +
+    if (!tracker) {
+        body = `${TRACKER_MARKER}\n\n` +
+            'This issue tracks the current incident across both runner patch-update workflows. ' +
             'Close manually after confirming recovery; a successful scheduled run may be a no-op.';
+        const previousIncident = markedTrackers.findLast(issue => issue.state === 'closed');
+        if (previousIncident) {
+            body += `\n\nPrevious incident: https://github.com/${repository}/issues/${previousIncident.number}`;
+        }
     }
     body = previous ? body.replace(section, () => entry) : `${body}\n\n${entry}`;
 
@@ -75,7 +81,7 @@ async function reportWorkflowFailure({ github, context }) {
         }
         await github.rest.issues.update({
             ...context.repo, issue_number: tracker.number,
-            title: TRACKER_TITLE, body, state: 'open',
+            title: TRACKER_TITLE, body,
         });
     } else {
         await createIssue(github, context.repo, TRACKER_TITLE, body, TRACKER_LABELS);

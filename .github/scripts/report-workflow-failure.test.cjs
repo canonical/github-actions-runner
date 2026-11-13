@@ -23,27 +23,27 @@ test('shares one tracker across recurring failures of both patch workflows', asy
     assert.doesNotMatch(api.issues[0].body, /actions\/runs\/500/);
 });
 
-// Keep migration attached to the oldest active issue and its existing Jira ticket.
-test('adopts the oldest open exact-title legacy patch issue without closing others', async () => {
+// Old daily failure issues are not incident trackers and must remain untouched.
+test('creates a new marked tracker instead of adopting unmarked legacy issues', async () => {
     const api = fakeGithub([
         issue(249, `CI/CD Pipeline Failed: ${RELEASE}`),
         issue(247, `CI/CD Pipeline Failed: ${MAIN}`, { state: 'closed' }),
         issue(248, `CI/CD Pipeline Failed: ${MAIN}`, { body: 'Investigation and Jira link' }),
         issue(246, `CI/CD Pipeline Failed: ${MAIN} extra`),
     ]);
+    const before = structuredClone(api.issues);
     await report(api, RELEASE, 500);
 
-    assert.equal(api.issues.length, 4);
-    assert.match(api.issues.find(i => i.number === 248).body, /Investigation and Jira link/);
-    assert.match(api.issues.find(i => i.number === 248).body, /runner-patch-failures/);
-    assert.equal(api.issues.find(i => i.number === 249).state, 'open');
-    assert.equal(api.issues.find(i => i.number === 246).title, `CI/CD Pipeline Failed: ${MAIN} extra`);
+    assert.equal(api.issues.length, 5);
+    assert.deepEqual(api.issues.slice(0, 4), before);
+    assert.match(api.issues[4].body, /runner-patch-failures/);
+    assert.match(api.issues[4].body, /actions\/runs\/500/);
 });
 
-// Migration must match new tracker labels without replacing human classification or stale exemptions.
-test('adds missing standard labels to adopted and marked trackers while preserving labels', async t => {
+// Active trackers must retain human classification and stale exemptions while receiving standard labels.
+test('adds missing standard labels to open marked trackers while preserving labels', async t => {
     for (const [name, existing] of [
-        ['legacy', issue(248, `CI/CD Pipeline Failed: ${MAIN}`, { labels: [{ name: 'bug' }, { name: 'investigating' }] })],
+        ['human-labelled', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'bug' }, { name: 'investigating' }] })],
         ['marked', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'bug' }] })],
         ['already exempt', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'keep' }] })],
         ['fully labelled', issue(248, 'Tracker', { body: TRACKER, labels: [{ name: 'bug' }, { name: 'ci-failure' }, { name: 'keep' }] })],
@@ -59,16 +59,58 @@ test('adds missing standard labels to adopted and marked trackers while preservi
     }
 });
 
-// Prevent a closed tracker being replaced by a new issue or an unmarked legacy issue.
-test('reopens the marked tracker on a new failure even when legacy issues remain', async () => {
+// A closed incident must remain closed, including when old daily duplicates are still open.
+test('creates a new tracker for a new incident without changing closed or legacy issues', async () => {
     const api = fakeGithub([issue(248, 'Tracker', { body: TRACKER, state: 'closed' }),
         issue(247, `CI/CD Pipeline Failed: ${MAIN}`)]);
+    const before = structuredClone(api.issues);
+    await report(api, MAIN, 500);
+
+    assert.equal(api.issues.length, 3);
+    assert.deepEqual(api.issues.slice(0, 2), before);
+    assert.match(api.issues[2].body, /actions\/runs\/500/);
+    assert.match(api.issues[2].body, /Previous incident: https:\/\/github.com\/canonical\/github-actions-runner\/issues\/248/);
+});
+
+// An older closed marker must not hide an existing active tracker.
+test('reuses an open marked tracker rather than an older closed marked tracker', async () => {
+    const api = fakeGithub([
+        issue(248, 'Closed incident', { body: TRACKER, state: 'closed' }),
+        issue(249, 'Active incident', { body: TRACKER }),
+    ]);
+    const closed = structuredClone(api.issues[0]);
     await report(api, MAIN, 500);
 
     assert.equal(api.issues.length, 2);
-    assert.equal(api.issues[0].state, 'open');
+    assert.deepEqual(api.issues[0], closed);
+    assert.match(api.issues[1].body, /actions\/runs\/500/);
+});
+
+// Later incidents link to their nearest predecessor, not the oldest historical tracker.
+test('links a new tracker to the most recent closed marked incident', async () => {
+    const api = fakeGithub([
+        issue(248, 'Older incident', { body: TRACKER, state: 'closed' }),
+        issue(249, 'Most recent incident', { body: TRACKER, state: 'closed' }),
+    ]);
+    const before = structuredClone(api.issues);
+    await report(api, MAIN, 500);
+
+    assert.deepEqual(api.issues.slice(0, 2), before);
+    assert.match(api.issues[2].body, /Previous incident: https:\/\/github.com\/canonical\/github-actions-runner\/issues\/249/);
+});
+
+// The reporter must not undo a human close that races with its body update.
+test('does not request reopening when updating an open tracker', async () => {
+    const api = fakeGithub([issue(248, 'Active incident', { body: TRACKER })]);
+    const update = api.github.rest.issues.update;
+    api.github.rest.issues.update = async fields => {
+        api.issues[0].state = 'closed';
+        return update(fields);
+    };
+    await report(api, MAIN, 500);
+
+    assert.equal(api.issues[0].state, 'closed');
     assert.match(api.issues[0].body, /actions\/runs\/500/);
-    assert.equal(api.issues[1].title, `CI/CD Pipeline Failed: ${MAIN}`);
 });
 
 // Make retried deliveries idempotent and avoid reopening manually closed incidents.
@@ -83,6 +125,36 @@ test('does not write or reopen for identical or stale reports', async () => {
     assert.equal(api.writes.length, writes);
     assert.equal(api.issues[0].state, 'closed');
     assert.match(api.issues[0].body, /actions\/runs\/502/);
+});
+
+// Replays from an earlier incident must not create another ticket or contaminate a new stream entry.
+test('ignores events recorded in a closed incident while another incident is open', async () => {
+    const api = fakeGithub();
+    await report(api, MAIN, 500);
+    api.issues[0].state = 'closed';
+    await report(api, RELEASE, 501);
+    const before = structuredClone(api.issues);
+    const writes = api.writes.length;
+    await report(api, MAIN, 500);
+    await report(api, MAIN, 499);
+
+    assert.equal(api.issues.length, 2);
+    assert.deepEqual(api.issues, before);
+    assert.equal(api.writes.length, writes);
+    assert.doesNotMatch(api.issues[1].body, /runner-patch-main/);
+});
+
+// A new failed attempt after resolution is a fresh incident, even if its Actions run ID is unchanged.
+test('creates a new tracker for a later attempt after the previous tracker is closed', async () => {
+    const api = fakeGithub();
+    await report(api, MAIN, 500);
+    api.issues[0].state = 'closed';
+    const closed = structuredClone(api.issues[0]);
+    await report(api, MAIN, 500, { run_attempt: 2 });
+
+    assert.equal(api.issues.length, 2);
+    assert.deepEqual(api.issues[0], closed);
+    assert.match(api.issues[1].body, /attempt:2/);
 });
 
 // A rerun of an existing Actions run is a new failure even though the run ID is unchanged.
