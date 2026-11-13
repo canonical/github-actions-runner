@@ -16,6 +16,12 @@ permissions:
     issues: write
     contents: read
 
+# Serialize shared issue writes without replacing pending failure reports.
+concurrency:
+    group: workflow-failure-reporting
+    cancel-in-progress: false
+    queue: max
+
 jobs:
     create-issue:
         # Only run this job if the triggered workflow concluded with a failure
@@ -24,34 +30,12 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v7
+              with:
+                  persist-credentials: false
 
-            - name: Create GitHub Issue on Failure
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                  WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
-                  RUN_URL: ${{ github.event.workflow_run.html_url }}
-                  REPOSITORY: ${{ github.repository }}
-                  RUN_ID: ${{ github.event.workflow_run.id }}
-              run: |
-                  ISSUE_TITLE="CI/CD Pipeline Failed: ${WORKFLOW_NAME}"
-                  ISSUE_MARKER="workflow-run-id:${RUN_ID}"
-                  ISSUE_BODY=$'The GitHub Actions workflow **'"${WORKFLOW_NAME}"'** has failed.\n\n**Run URL:** '"${RUN_URL}"'\n**Run ID:** '"${RUN_ID}"'\n\n'"${ISSUE_MARKER}"$'\n\nPlease investigate and resolve the issue.'
-
-                  # Check if an issue for this specific workflow run already exists to prevent duplicate spam on retries
-                  EXISTING_ISSUE=$(gh issue list --repo "${REPOSITORY}" --state open --search "\"${ISSUE_MARKER}\" in:body" --json number --jq '.[0].number // empty')
-                  if [ -n "$EXISTING_ISSUE" ]; then
-                    echo "An issue for this workflow run already exists (#${EXISTING_ISSUE}). Skipping creation."
-                  else
-                    # gh issue create fails outright if a label is missing, so (re)create it first
-                    gh label create "ci-failure" \
-                      --repo "${REPOSITORY}" \
-                      --description "Automated CI/CD pipeline failure" \
-                      --color "B60205" \
-                      --force
-                    gh issue create \
-                      --repo "${REPOSITORY}" \
-                      --title "${ISSUE_TITLE}" \
-                      --body "${ISSUE_BODY}" \
-                      --label "bug" \
-                      --label "ci-failure"
-                  fi
+            - name: Report workflow failure
+              uses: actions/github-script@v8
+              with:
+                  script: |
+                      const { reportWorkflowFailure } = require('./.github/scripts/report-workflow-failure.cjs');
+                      await reportWorkflowFailure({ github, context });
