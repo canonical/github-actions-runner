@@ -104,6 +104,7 @@ jobs:
         mkdir package_test
         tar -xvzf ../_package/*.tar.gz -C package_test
         ./package_test/config.sh --version
+        # 2026/11/24 Keep runtime assertions derived from src/Misc/externals.sh so upstream Node pin updates require no workflow edit.
         test -x package_test/externals/node24/bin/node
         test ! -e package_test/externals/node20
         test ! -e package_test/externals/node22
