@@ -69,92 +69,110 @@ jobs:
       if: steps.get-commits.outputs.PREVIOUS_COMMIT != '' && steps.get-commits.outputs.PREVIOUS_COMMIT != steps.get-commits.outputs.LATEST_COMMIT
       id: process-arches
       run: |
-        mkdir -p patches
-        touch successful_arches.txt failed_arches.txt
-        
+        RESULT_DIR="${RUNNER_TEMP}/patch-update-results"
+        mkdir -p "$RESULT_DIR" patches
+        SUCCESSFUL_ARCHES="$RESULT_DIR/successful_arches.txt"
+        FAILED_ARCHES="$RESULT_DIR/failed_arches.txt"
+        : > "$SUCCESSFUL_ARCHES"
+        : > "$FAILED_ARCHES"
+
         for arch in ppc64le s390x arm; do
           echo "Processing $arch..."
+          PATCH_FILE="../patches/runner-main-sdk8-$arch.patch"
           cd upstream-runner
-          
-          # Reset to clean state
+
+          # Reset to a clean upstream checkout before each architecture.
           git reset --hard
           git clean -fd
 
-          # A manually regenerated patch may already target the latest upstream
-          # commit. Validate it and keep it instead of trying to rebase it from
-          # the shared previous marker.
-          if [ -f "../patches/runner-main-sdk8-$arch.patch" ] && \
-             [ "$(tail -n 1 "../patches/runner-main-sdk8-$arch.patch")" = "# From upstream commit: ${{ steps.get-commits.outputs.LATEST_COMMIT }}" ]; then
-            git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT }}
-            if ! git apply --check --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"; then
+          # The patch trailer is the authoritative rebase base. This allows a
+          # manually regenerated patch to survive an upstream commit arriving
+          # before the next scheduled run.
+          PATCH_BASE=""
+          if [ -f "$PATCH_FILE" ]; then
+            PATCH_BASE=$(sed 's/\r$//' "$PATCH_FILE" | \
+              grep -E '^# From upstream commit: [0-9a-f]{40}$' | tail -n 1 | \
+              sed 's/^# From upstream commit: //')
+          fi
+
+          if [ -z "$PATCH_BASE" ]; then
+            echo "::error::No valid upstream commit trailer for $arch"
+            cd ..
+            echo "$arch" >> "$FAILED_ARCHES"
+            continue
+          fi
+
+          if ! git rev-parse "$PATCH_BASE^{commit}" >/dev/null 2>&1 || \
+             ! git merge-base --is-ancestor "$PATCH_BASE" "${{ steps.get-commits.outputs.LATEST_COMMIT }}"; then
+            echo "::error::Patch base $PATCH_BASE for $arch is not an ancestor of ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}"
+            cd ..
+            echo "$arch" >> "$FAILED_ARCHES"
+            continue
+          fi
+
+          if [ "$PATCH_BASE" = "${{ steps.get-commits.outputs.LATEST_COMMIT }}" ]; then
+            git checkout "${{ steps.get-commits.outputs.LATEST_COMMIT }}"
+            if ! git apply --check --whitespace=nowarn "$PATCH_FILE"; then
               echo "::error::Patch for $arch is marked for ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} but does not apply cleanly"
               cd ..
-              echo "$arch" >> failed_arches.txt
+              echo "$arch" >> "$FAILED_ARCHES"
               continue
             fi
             echo "Patch for $arch already targets ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} - skipping rebase"
             cd ..
-            echo "$arch" >> successful_arches.txt
-            continue
-          fi
-          
-          # Check if previous patch exists
-          if [ ! -f "../patches/runner-main-sdk8-$arch.patch" ] || \
-             ! grep -q "${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}" "../patches/runner-main-sdk8-$arch.patch"; then
-            echo "::error::No valid previous patch for $arch"
-            cd ..
-            echo "$arch" >> failed_arches.txt
+            echo "$arch" >> "$SUCCESSFUL_ARCHES"
             continue
           fi
 
-          # Apply previous patch to previous commit
-          git checkout ${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}
-          if ! git apply --check --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"; then
-            echo "::error::Previous patch application failed for $arch"
+          # Apply the patch to the exact upstream commit named by its trailer.
+          git checkout "$PATCH_BASE"
+          if ! git apply --check --whitespace=nowarn "$PATCH_FILE" || \
+             ! git apply --whitespace=nowarn "$PATCH_FILE"; then
+            echo "::error::Patch application failed for $arch on base $PATCH_BASE"
             cd ..
-            echo "$arch" >> failed_arches.txt
+            echo "$arch" >> "$FAILED_ARCHES"
             continue
           fi
-          git apply --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"
-          
-          # Stash changes
-          git stash push -m "patch-$arch"
-          
-          # Apply to latest commit
-          git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT }}
+
+          # Include added files in the stash and in the regenerated patch.
+          git add -A
+          git stash push --include-untracked -m "patch-$arch"
+
+          git checkout "${{ steps.get-commits.outputs.LATEST_COMMIT }}"
           if ! git stash apply stash^{/patch-$arch}; then
             echo "::error::Stash application failed for $arch on latest commit"
             git reset --hard
+            git clean -fd
             git stash drop || true
             cd ..
-            echo "$arch" >> failed_arches.txt
+            echo "$arch" >> "$FAILED_ARCHES"
             continue
           fi
-          
-          # Create new patch
-          git diff --patch --ignore-space-at-eol > "../patches/runner-main-sdk8-$arch.patch"
-          echo "# From upstream commit: ${{ steps.get-commits.outputs.LATEST_COMMIT }}" >> "../patches/runner-main-sdk8-$arch.patch"
-          
-          # Cleanup
+
+          git add -A
+          git diff --cached --binary --ignore-space-at-eol > "$PATCH_FILE"
+          printf '# From upstream commit: %s\n' "${{ steps.get-commits.outputs.LATEST_COMMIT }}" >> "$PATCH_FILE"
+
           git reset --hard
+          git clean -fd
           git stash drop || true
           cd ..
-          
-          echo "$arch" >> successful_arches.txt
+
+          echo "$arch" >> "$SUCCESSFUL_ARCHES"
         done
 
         # Set outputs for architecture results. The shared upstream marker only
         # advances after every patch is current or regenerated successfully.
-        if [ -s successful_arches.txt ]; then
-          echo "successful_arches=$(paste -sd, successful_arches.txt)" >> $GITHUB_OUTPUT
+        if [ -s "$SUCCESSFUL_ARCHES" ]; then
+          echo "successful_arches=$(paste -sd, "$SUCCESSFUL_ARCHES")" >> "$GITHUB_OUTPUT"
         fi
-        if [ -s failed_arches.txt ]; then
-          echo "failed_arches=$(paste -sd, failed_arches.txt)" >> $GITHUB_OUTPUT
+        if [ -s "$FAILED_ARCHES" ]; then
+          echo "failed_arches=$(paste -sd, "$FAILED_ARCHES")" >> "$GITHUB_OUTPUT"
         fi
-        if [ "$(wc -l < successful_arches.txt)" -eq 3 ] && [ ! -s failed_arches.txt ]; then
-          echo "all_arches_succeeded=true" >> $GITHUB_OUTPUT
+        if [ "$(wc -l < "$SUCCESSFUL_ARCHES")" -eq 3 ] && [ ! -s "$FAILED_ARCHES" ]; then
+          echo "all_arches_succeeded=true" >> "$GITHUB_OUTPUT"
         else
-          echo "all_arches_succeeded=false" >> $GITHUB_OUTPUT
+          echo "all_arches_succeeded=false" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Update commit reference
@@ -165,7 +183,6 @@ jobs:
     - name: Prepare repo for PR
       if: steps.process-arches.outputs.all_arches_succeeded == 'true'
       run: |
-        rm -f successful_arches.txt
         cd upstream-runner && git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} && cd ..
         cp -r upstream-runner/* .
         rm -rf upstream-runner
