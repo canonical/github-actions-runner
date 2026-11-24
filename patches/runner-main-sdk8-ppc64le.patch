@@ -122,6 +122,71 @@ index 97273a1a..78f78701 100644
                      default:
                          throw new NotSupportedException(); // Should never reach here.
                  }
+diff --git a/src/Runner.Listener/Runner.Listener.csproj b/src/Runner.Listener/Runner.Listener.csproj
+index 08adb988..23ac7217 100644
+--- a/src/Runner.Listener/Runner.Listener.csproj
++++ b/src/Runner.Listener/Runner.Listener.csproj
+@@ -5,6 +5,8 @@
+     <OutputType>Exe</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-s390x'">false</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-ppc64le'">false</SelfContained>
+     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+     <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
+     <Version>$(Version)</Version>
+diff --git a/src/Runner.PluginHost/Runner.PluginHost.csproj b/src/Runner.PluginHost/Runner.PluginHost.csproj
+index 51ee3ce4..c8113be6 100644
+--- a/src/Runner.PluginHost/Runner.PluginHost.csproj
++++ b/src/Runner.PluginHost/Runner.PluginHost.csproj
+@@ -5,6 +5,8 @@
+     <OutputType>Exe</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-s390x'">false</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-ppc64le'">false</SelfContained>
+     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+     <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
+     <Version>$(Version)</Version>
+diff --git a/src/Runner.Plugins/Runner.Plugins.csproj b/src/Runner.Plugins/Runner.Plugins.csproj
+index 1ddd57eb..a17b29b4 100644
+--- a/src/Runner.Plugins/Runner.Plugins.csproj
++++ b/src/Runner.Plugins/Runner.Plugins.csproj
+@@ -5,6 +5,8 @@
+     <OutputType>Library</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-s390x'">false</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-ppc64le'">false</SelfContained>
+     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+     <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
+     <Version>$(Version)</Version>
+diff --git a/src/Runner.Sdk/Runner.Sdk.csproj b/src/Runner.Sdk/Runner.Sdk.csproj
+index 278bb064..d439fdb6 100644
+--- a/src/Runner.Sdk/Runner.Sdk.csproj
++++ b/src/Runner.Sdk/Runner.Sdk.csproj
+@@ -5,6 +5,8 @@
+     <OutputType>Library</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-s390x'">false</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-ppc64le'">false</SelfContained>
+     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+     <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
+     <Version>$(Version)</Version>
+diff --git a/src/Runner.Worker/Runner.Worker.csproj b/src/Runner.Worker/Runner.Worker.csproj
+index 33e2b2ff..847ad259 100644
+--- a/src/Runner.Worker/Runner.Worker.csproj
++++ b/src/Runner.Worker/Runner.Worker.csproj
+@@ -5,6 +5,8 @@
+     <OutputType>Exe</OutputType>
+     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
+     <SelfContained>true</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-s390x'">false</SelfContained>
++    <SelfContained Condition="'$(PackageRuntime)' == 'linux-ppc64le'">false</SelfContained>
+     <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
+     <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
+     <Version>$(Version)</Version>
 diff --git a/src/Test/L0/ConstantGenerationL0.cs b/src/Test/L0/ConstantGenerationL0.cs
 index e4dda744..0fd0b12b 100644
 --- a/src/Test/L0/ConstantGenerationL0.cs
