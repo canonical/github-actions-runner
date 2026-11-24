@@ -84,9 +84,7 @@ jobs:
           # before the next scheduled run.
           PATCH_BASE=""
           if [ -f "$PATCH_FILE" ]; then
-            PATCH_BASE=$(sed 's/\r$//' "$PATCH_FILE" | \
-              grep -E '^# From upstream commit: [0-9a-f]{40}$' | tail -n 1 | \
-              sed 's/^# From upstream commit: //')
+            PATCH_BASE=$(sed -E -n 's/\r$//; s/^# From upstream commit: ([0-9a-f]{40})$/\1/p' "$PATCH_FILE" | tail -n 1)
           fi
 
           if [ -z "$PATCH_BASE" ]; then
