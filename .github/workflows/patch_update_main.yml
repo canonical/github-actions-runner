@@ -70,7 +70,7 @@ jobs:
       id: process-arches
       run: |
         mkdir -p patches
-        touch successful_arches.txt
+        touch successful_arches.txt failed_arches.txt
         
         for arch in ppc64le s390x arm; do
           echo "Processing $arch..."
@@ -79,19 +79,41 @@ jobs:
           # Reset to clean state
           git reset --hard
           git clean -fd
+
+          # A manually regenerated patch may already target the latest upstream
+          # commit. Validate it and keep it instead of trying to rebase it from
+          # the shared previous marker.
+          if [ -f "../patches/runner-main-sdk8-$arch.patch" ] && \
+             [ "$(tail -n 1 "../patches/runner-main-sdk8-$arch.patch")" = "# From upstream commit: ${{ steps.get-commits.outputs.LATEST_COMMIT }}" ]; then
+            git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT }}
+            if ! git apply --check --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"; then
+              echo "::error::Patch for $arch is marked for ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} but does not apply cleanly"
+              cd ..
+              echo "$arch" >> failed_arches.txt
+              continue
+            fi
+            echo "Patch for $arch already targets ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} - skipping rebase"
+            cd ..
+            echo "$arch" >> successful_arches.txt
+            continue
+          fi
           
           # Check if previous patch exists
           if [ ! -f "../patches/runner-main-sdk8-$arch.patch" ] || \
              ! grep -q "${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}" "../patches/runner-main-sdk8-$arch.patch"; then
             echo "::error::No valid previous patch for $arch"
-            exit 1
+            cd ..
+            echo "$arch" >> failed_arches.txt
+            continue
           fi
 
           # Apply previous patch to previous commit
           git checkout ${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}
           if ! git apply --check --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"; then
             echo "::error::Previous patch application failed for $arch"
-            exit 1
+            cd ..
+            echo "$arch" >> failed_arches.txt
+            continue
           fi
           git apply --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"
           
@@ -102,7 +124,11 @@ jobs:
           git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT }}
           if ! git stash apply stash^{/patch-$arch}; then
             echo "::error::Stash application failed for $arch on latest commit"
-            exit 1
+            git reset --hard
+            git stash drop || true
+            cd ..
+            echo "$arch" >> failed_arches.txt
+            continue
           fi
           
           # Create new patch
@@ -117,18 +143,27 @@ jobs:
           echo "$arch" >> successful_arches.txt
         done
 
-        # Set output for successful architectures
+        # Set outputs for architecture results. The shared upstream marker only
+        # advances after every patch is current or regenerated successfully.
         if [ -s successful_arches.txt ]; then
           echo "successful_arches=$(paste -sd, successful_arches.txt)" >> $GITHUB_OUTPUT
         fi
+        if [ -s failed_arches.txt ]; then
+          echo "failed_arches=$(paste -sd, failed_arches.txt)" >> $GITHUB_OUTPUT
+        fi
+        if [ "$(wc -l < successful_arches.txt)" -eq 3 ] && [ ! -s failed_arches.txt ]; then
+          echo "all_arches_succeeded=true" >> $GITHUB_OUTPUT
+        else
+          echo "all_arches_succeeded=false" >> $GITHUB_OUTPUT
+        fi
 
     - name: Update commit reference
-      if: steps.process-arches.outputs.successful_arches != ''
+      if: steps.process-arches.outputs.all_arches_succeeded == 'true'
       run: |
         echo "${{ steps.get-commits.outputs.LATEST_COMMIT }}" > patches/last_processed_commit.txt
 
     - name: Prepare repo for PR
-      if: steps.process-arches.outputs.successful_arches != ''
+      if: steps.process-arches.outputs.all_arches_succeeded == 'true'
       run: |
         rm -f successful_arches.txt
         cd upstream-runner && git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} && cd ..
@@ -146,7 +181,7 @@ jobs:
 
     - name: Create pull request
       uses: peter-evans/create-pull-request@v8
-      if: steps.process-arches.outputs.successful_arches != ''
+      if: steps.process-arches.outputs.all_arches_succeeded == 'true'
       with:
         # 2025-08-22: Using GitHub's Personal Access Token is required to allow automated workflow
         # triggers (on: pull_request) from Pull Requests issued by this workflow.
@@ -157,6 +192,12 @@ jobs:
         branch: patch-sync/${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}
         title: Sync main patch ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}
         body: Sync main branch patcdh for commit ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }}
+
+    - name: Fail if any architecture was not updated
+      if: steps.process-arches.outputs.failed_arches != ''
+      run: |
+        echo "::error::Could not rebase patches onto ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} for: ${{ steps.process-arches.outputs.failed_arches }}. Rebase the patch manually."
+        exit 1
 
     - uses: mattermost/action-mattermost-notify@master
       if: ${{ failure() }}
