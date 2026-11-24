@@ -93,12 +93,13 @@ jobs:
 
     # Create runner package tar.gz/zip
     - name: Package Release
+      if: github.event_name != 'pull_request'
       run: |
         ./dev.sh package Release ${{ matrix.runtime }}
       working-directory: src
 
     - name: Test package
-      if: matrix.runtime != 'linux-arm'
+      if: github.event_name != 'pull_request' && matrix.runtime != 'linux-arm'
       run: |
         mkdir package_test
         tar -xvzf ../_package/*.tar.gz -C package_test
@@ -106,7 +107,8 @@ jobs:
         test -x package_test/externals/node24/bin/node
         test ! -e package_test/externals/node20
         test ! -e package_test/externals/node22
-        package_test/externals/node24/bin/node --version
+        NODE24_VERSION=$(sed -n 's/^NODE24_VERSION="\([0-9.]*\)"/\1/p' Misc/externals.sh)
+        test "$(package_test/externals/node24/bin/node --version)" = "v$NODE24_VERSION"
       working-directory: src
 
     # linux-arm produces armv7l (32-bit) binaries that cannot execute on the
@@ -114,7 +116,7 @@ jobs:
     # On arm64 hosts with native AArch32 support this runs natively; if binfmt/qemu-user
     # emulation is configured on the runner, it may run under emulation instead.
     - name: Test package (arm32v7 container)
-      if: matrix.runtime == 'linux-arm'
+      if: github.event_name != 'pull_request' && matrix.runtime == 'linux-arm'
       run: |
         mkdir package_test
         tar -xzf ../_package/*.tar.gz -C package_test
