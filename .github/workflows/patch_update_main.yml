@@ -51,7 +51,7 @@ jobs:
         fi
 
     - name: Verify previous commit exists
-      if: steps.get-commits.outputs.PREVIOUS_COMMIT != ''
+      if: steps.get-commits.outputs.PREVIOUS_COMMIT != '' && steps.get-commits.outputs.PREVIOUS_COMMIT != steps.get-commits.outputs.LATEST_COMMIT
       run: |
         cd upstream-runner
         if ! git rev-parse ${{ steps.get-commits.outputs.PREVIOUS_COMMIT }} >/dev/null 2>&1; then
