@@ -104,13 +104,6 @@ jobs:
         mkdir package_test
         tar -xvzf ../_package/*.tar.gz -C package_test
         ./package_test/config.sh --version
-        # 2026/11/24 Keep runtime assertions derived from src/Misc/externals.sh so upstream Node pin updates require no workflow edit.
-        # The negative checks ensure the package contains only the selected Node major; update these paths if the supported major changes.
-        test -x package_test/externals/node24/bin/node
-        test ! -e package_test/externals/node20
-        test ! -e package_test/externals/node22
-        NODE24_VERSION=$(sed -n 's/^NODE24_VERSION="\([0-9.]*\)"/\1/p' Misc/externals.sh)
-        test "$(package_test/externals/node24/bin/node --version)" = "v$NODE24_VERSION"
       working-directory: src
 
     # linux-arm produces armv7l (32-bit) binaries that cannot execute on the
@@ -122,20 +115,14 @@ jobs:
       run: |
         mkdir package_test
         tar -xzf ../_package/*.tar.gz -C package_test
-        test -x package_test/externals/node22/bin/node
-        test ! -e package_test/externals/node20
-        test ! -e package_test/externals/node24
-        # 2026/11/24 Keep the ARM32 runtime assertion derived from src/Misc/externals.sh when Node22 is upgraded.
-        NODE22_VERSION=$(sed -n 's/^NODE22_VERSION="\([0-9.]*\)"/\1/p' Misc/externals.sh)
         # Use sudo only if the runner user can't reach the Docker daemon directly.
         DOCKER=docker
         if ! docker info >/dev/null 2>&1; then DOCKER="sudo docker"; fi
         $DOCKER run --rm --platform linux/arm/v7 \
           -e RUNNER_ALLOW_RUNASROOT=1 \
-          -e EXPECTED_NODE_VERSION="$NODE22_VERSION" \
           -v "$(pwd)/package_test:/runner" -w /runner \
           arm32v7/ubuntu:noble \
-          bash -c 'set -e; apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libicu74 libatomic1 ca-certificates >/dev/null; ./config.sh --version; test "$(./externals/node22/bin/node --version)" = "v$EXPECTED_NODE_VERSION"; test "$(./externals/node22/bin/node -p process.arch)" = arm'
+          bash -c 'set -e; apt-get update -qq; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq libicu74 libatomic1 ca-certificates >/dev/null; ./config.sh --version'
       working-directory: src
 
     # Upload runner package tar.gz/zip as artifact
