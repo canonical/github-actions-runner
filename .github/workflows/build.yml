@@ -105,6 +105,7 @@ jobs:
         tar -xvzf ../_package/*.tar.gz -C package_test
         ./package_test/config.sh --version
         # 2026/11/24 Keep runtime assertions derived from src/Misc/externals.sh so upstream Node pin updates require no workflow edit.
+        # The negative checks ensure the package contains only the selected Node major; update these paths if the supported major changes.
         test -x package_test/externals/node24/bin/node
         test ! -e package_test/externals/node20
         test ! -e package_test/externals/node22

@@ -15,3 +15,6 @@ sudo add-apt-repository -y ppa:dotnet/backports
 sudo apt-get install -y dotnet-runtime-8.0
 ```
 
+## Maintainer note: bundled Node runtime checks
+
+Architecture package validation checks that each package contains only its selected Node major. If upstream changes the supported Node major, update the corresponding runtime patch, package assertions, and ARM32 container check together.
