@@ -15,6 +15,8 @@ jobs:
   check:
     if: startsWith(github.ref, 'refs/heads/releases/') || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      riscv64-enabled: ${{ vars.ENABLE_RISCV64_BUILDS == 'true' }}
     steps:
     - uses: actions/checkout@v7
 
@@ -55,9 +57,11 @@ jobs:
       linux-s390x-sha: ${{ steps.sha.outputs.linux-s390x-sha256 }}
       linux-ppc64le-sha: ${{ steps.sha.outputs.linux-ppc64le-sha256 }}
       linux-arm-sha: ${{ steps.sha.outputs.linux-arm-sha256 }}
+      linux-riscv64-sha: ${{ steps.sha.outputs.linux-riscv64-sha256 }}
+      riscv64-enabled: ${{ needs.check.outputs.riscv64-enabled }}
     strategy:
       matrix:
-        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64, linux-arm ]
+        runtime: ${{ fromJSON(needs.check.outputs.riscv64-enabled == 'true' && '["linux-s390x","linux-ppc64le","linux-x64","linux-arm64","linux-arm","linux-riscv64"]' || '["linux-s390x","linux-ppc64le","linux-x64","linux-arm64","linux-arm"]') }}
         include:
         - runtime: linux-s390x
           runs_on: s390x
@@ -77,19 +81,29 @@ jobs:
           runs_on: arm64
           patch_tag: arm
 
-    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on }}" ]
+    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on || 'riscv64' }}" ]
     steps:
     - uses: actions/checkout@v7
 
     - name: Install DotNet SDK
+      if: matrix.runtime != 'linux-riscv64'
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
+    - name: Install community RISC-V DotNet SDK
+      if: matrix.runtime == 'linux-riscv64'
+      run: bash .github/scripts/setup-riscv64-dotnet.sh
+
     - name: Apply patches
-      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm'
+      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm' || matrix.runtime == 'linux-riscv64'
       run: |
-        git apply patches/runner-sdk8-${{ matrix.patch_tag }}.patch
+        if [[ "${{ matrix.runtime }}" == "linux-riscv64" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+          git apply patches/runner-main-sdk8-riscv64.patch
+        else
+          git apply patches/runner-sdk8-${{ matrix.patch_tag || 'riscv64' }}.patch
+        fi
 
     - name: Update DotNet required version pin
+      if: matrix.runtime != 'linux-riscv64'
       run: |
         current_version=$( cat src/global.json | jq -r '.sdk.version' )
         if [ "${{ matrix.runtime }}" = "linux-arm" ]; then
@@ -102,6 +116,12 @@ jobs:
           sed -i "s/${current_version}/8.0/" src/global.json
         fi
 
+    - name: Ensure patched WebUtilities dependency
+      run: |
+        if ! grep -q 'PackageReference Include="Microsoft.AspNetCore.WebUtilities"' src/Runner.Worker/Runner.Worker.csproj; then
+          dotnet add src/Runner.Worker/Runner.Worker.csproj package Microsoft.AspNetCore.WebUtilities --version 8.0.34 --no-restore
+        fi
+
     # Build runner layout
     - name: Build & Layout Release
       run: |
@@ -111,6 +131,13 @@ jobs:
     # Fork-only: see .github/scripts/strip-bundled-npm.sh.
     - name: Strip bundled npm and corepack
       run: .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
+
+    - name: RISC-V L0
+      if: matrix.runtime == 'linux-riscv64'
+      working-directory: src
+      run: |
+        unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
+        ./dev.sh test
 
     # Create runner package tar.gz/zip
     - name: Package Release
@@ -203,6 +230,13 @@ jobs:
         name: runner-packages-linux-arm
         path: ./
 
+    - name: Download Artifact (linux-riscv64)
+      if: needs.build.outputs.riscv64-enabled == 'true'
+      uses: actions/download-artifact@v4
+      with:
+        name: runner-packages-linux-riscv64
+        path: ./
+
     # Create ReleaseNote file
     - name: Create ReleaseNote
       id: releaseNote
@@ -221,6 +255,9 @@ jobs:
           releaseNote = releaseNote.replace(/<LINUX_PPC64LE_SHA>/g, '${{needs.build.outputs.linux-ppc64le-sha}}')
           releaseNote = releaseNote.replace(/<LINUX_S390X_SHA>/g, '${{needs.build.outputs.linux-s390x-sha}}')
           releaseNote = releaseNote.replace(/<LINUX_ARM_SHA>/g, '${{needs.build.outputs.linux-arm-sha}}')
+          if ('${{ needs.build.outputs.riscv64-enabled }}' === 'true') {
+            releaseNote += `\n\n## Linux RISC-V 64\n\nAsset: \`actions-runner-linux-riscv64-${runnerVersion}.tar.gz\`\n\nSHA-256: \`${{ needs.build.outputs.linux-riscv64-sha }}\`\n`
+          }
           console.log(releaseNote)
           core.setOutput('version', runnerVersion);
           core.setOutput('note', releaseNote);
@@ -233,6 +270,11 @@ jobs:
         echo "${{needs.build.outputs.linux-ppc64le-sha}}  actions-runner-linux-ppc64le-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
         echo "${{needs.build.outputs.linux-s390x-sha}}  actions-runner-linux-s390x-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
         echo "${{needs.build.outputs.linux-arm-sha}}  actions-runner-linux-arm-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
+
+    - name: Validate RISC-V Package HASH
+      if: needs.build.outputs.riscv64-enabled == 'true'
+      run: |
+        echo "${{ needs.build.outputs.linux-riscv64-sha }}  actions-runner-linux-riscv64-${{ steps.releaseNote.outputs.version }}.tar.gz" | shasum -a 256 -c
 
     # Create GitHub release
     - uses: actions/create-release@master
@@ -294,6 +336,17 @@ jobs:
         upload_url: ${{ steps.createRelease.outputs.upload_url }}
         asset_path: ${{ github.workspace }}/actions-runner-linux-arm-${{ steps.releaseNote.outputs.version }}.tar.gz
         asset_name: actions-runner-linux-arm-${{ steps.releaseNote.outputs.version }}.tar.gz
+        asset_content_type: application/octet-stream
+
+    - name: Upload Release Asset (linux-riscv64)
+      if: needs.build.outputs.riscv64-enabled == 'true'
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.createRelease.outputs.upload_url }}
+        asset_path: ${{ github.workspace }}/actions-runner-linux-riscv64-${{ steps.releaseNote.outputs.version }}.tar.gz
+        asset_name: actions-runner-linux-riscv64-${{ steps.releaseNote.outputs.version }}.tar.gz
         asset_content_type: application/octet-stream
 
     - uses: mattermost/action-mattermost-notify@master

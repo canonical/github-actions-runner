@@ -72,7 +72,7 @@ jobs:
         mkdir -p patches
         touch successful_arches.txt
         
-        for arch in ppc64le s390x arm; do
+        for arch in ppc64le s390x arm riscv64; do
           echo "Processing $arch..."
           cd upstream-runner
           
@@ -133,6 +133,14 @@ jobs:
         rm -f successful_arches.txt
         cd upstream-runner && git checkout ${{ steps.get-commits.outputs.LATEST_COMMIT_SHORT }} && cd ..
         cp -r upstream-runner/* .
+        # Preserve the fork's fix until upstream includes this dependency.
+        if ! grep -q 'PackageReference Include="Microsoft.AspNetCore.WebUtilities"' src/Runner.Worker/Runner.Worker.csproj; then
+          sed -i '/<PackageReference Include="System.Security.Cryptography.ProtectedData"/i \    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.34" />' src/Runner.Worker/Runner.Worker.csproj
+        fi
+        if ! grep -q 'PackageReference Include="Microsoft.AspNetCore.WebUtilities"' src/Runner.Worker/Runner.Worker.csproj; then
+          echo "::error::Could not preserve the WebUtilities dependency"
+          exit 1
+        fi
         rm -rf upstream-runner
 
     - name: Import and configure the GPG key for Platform Engineering bot

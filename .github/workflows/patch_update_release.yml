@@ -70,7 +70,7 @@ jobs:
           mkdir -p patches
           touch successful_arches.txt
 
-          for arch in ppc64le s390x arm; do
+          for arch in ppc64le s390x arm riscv64; do
             echo "Processing $arch..."
             cd upstream-runner
             

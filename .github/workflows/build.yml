@@ -18,7 +18,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64, linux-arm ]
+        runtime: ${{ fromJSON(vars.ENABLE_RISCV64_BUILDS == 'true' && '["linux-s390x","linux-ppc64le","linux-x64","linux-arm64","linux-arm","linux-riscv64"]' || '["linux-s390x","linux-ppc64le","linux-x64","linux-arm64","linux-arm"]') }}
         include:
 
         - runtime: linux-x64
@@ -39,19 +39,29 @@ jobs:
           runs_on: s390x
           patch_tag: s390x
 
-    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on }}" ]
+    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on || 'riscv64' }}" ]
     steps:
     - uses: actions/checkout@v7
 
     - name: Install DotNet SDK
+      if: matrix.runtime != 'linux-riscv64'
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
+    - name: Install community RISC-V DotNet SDK
+      if: matrix.runtime == 'linux-riscv64'
+      run: bash .github/scripts/setup-riscv64-dotnet.sh
+
     - name: Apply patches
-      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm'
+      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm' || matrix.runtime == 'linux-riscv64'
       run: |
-        git apply patches/runner-main-sdk8-${{ matrix.patch_tag }}.patch
+        if [[ "${{ matrix.runtime }}" == "linux-riscv64" && ( "$GITHUB_REF" == refs/heads/releases/* || "$GITHUB_BASE_REF" == releases/* ) ]]; then
+          git apply patches/runner-sdk8-riscv64.patch
+        else
+          git apply patches/runner-main-sdk8-${{ matrix.patch_tag || 'riscv64' }}.patch
+        fi
 
     - name: Update DotNet required version pin
+      if: matrix.runtime != 'linux-riscv64'
       run: |
         current_version=$( cat src/global.json | jq -r '.sdk.version' )
         if [ "${{ matrix.runtime }}" = "linux-arm" ]; then
@@ -81,7 +91,7 @@ jobs:
         unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
         ./dev.sh test
       working-directory: src
-      if: matrix.runtime == 'linux-x64'
+      if: matrix.runtime == 'linux-x64' || matrix.runtime == 'linux-riscv64'
 
     # Create runner package tar.gz/zip
     - name: Package Release
