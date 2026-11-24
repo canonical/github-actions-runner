@@ -124,6 +124,7 @@ jobs:
         test -x package_test/externals/node22/bin/node
         test ! -e package_test/externals/node20
         test ! -e package_test/externals/node24
+        # 2026/11/24 Keep the ARM32 runtime assertion derived from src/Misc/externals.sh when Node22 is upgraded.
         NODE22_VERSION=$(sed -n 's/^NODE22_VERSION="\([0-9.]*\)"/\1/p' Misc/externals.sh)
         # Use sudo only if the runner user can't reach the Docker daemon directly.
         DOCKER=docker
