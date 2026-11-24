@@ -84,7 +84,7 @@ jobs:
       working-directory: src
       if: matrix.runtime == 'linux-x64'
 
-    - name: L0 (patched ppc64le/s390x)
+    - name: L0 (patched native ppc64le/s390x)
       if: matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-s390x'
       run: |
         unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
