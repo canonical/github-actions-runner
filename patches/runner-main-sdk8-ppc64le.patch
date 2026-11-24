@@ -122,18 +122,6 @@ index 97273a1a..78f78701 100644
                      default:
                          throw new NotSupportedException(); // Should never reach here.
                  }
-diff --git a/src/Sdk/Sdk.csproj b/src/Sdk/Sdk.csproj
-index c02c7b78..9231086c 100644
---- a/src/Sdk/Sdk.csproj
-+++ b/src/Sdk/Sdk.csproj
-@@ -4,7 +4,6 @@
-         <TargetFramework>net8.0</TargetFramework>
-         <OutputType>Library</OutputType>
-         <RuntimeIdentifiers>win-x64;win-x86;linux-x64;linux-arm64;osx-x64;osx-arm64;win-arm64</RuntimeIdentifiers>
--        <!-- <SelfContained>true</SelfContained> -->
-         <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
-         <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
-         <Version>$(Version)</Version>
 diff --git a/src/Test/L0/ConstantGenerationL0.cs b/src/Test/L0/ConstantGenerationL0.cs
 index e4dda744..0fd0b12b 100644
 --- a/src/Test/L0/ConstantGenerationL0.cs
@@ -261,7 +249,7 @@ index 6eb6df20..db6fcb28 100755
  heading "Dotnet SDK Version"
  dotnet --version
 diff --git a/src/dir.proj b/src/dir.proj
-index 056a312e..6ad61100 100644
+index 056a312e..52cb25ca 100644
 --- a/src/dir.proj
 +++ b/src/dir.proj
 @@ -41,8 +41,17 @@
@@ -277,7 +265,7 @@ index 056a312e..6ad61100 100644
 +                 Perform a non-self-contained publish using the current runtime identifier instead.
 +                 In addition, when not using an explicit runtime identifier, the SDK will copy runtime assets from dependent packages;
 +                 as this would confuse the expected layout, disable that behavior as well.  -->
-+            <PublishRuntimeIdentifier Condition="'$(PackageRuntime)' == 'linux-ppc64le' Or '$(PackageRuntime)' == 'linux-s390x'">RuntimeIdentifier=$(PackageRuntime);SelfContained=false</PublishRuntimeIdentifier>
++            <PublishRuntimeIdentifier Condition="'$(PackageRuntime)' == 'linux-ppc64le' Or '$(PackageRuntime)' == 'linux-s390x'">SelfContained=false</PublishRuntimeIdentifier>
 +        </PropertyGroup>
 +        <MSBuild Targets="Restore" Projects="@(ProjectFiles)" StopOnFirstFailure="true" Properties="$(PublishRuntimeIdentifier)" />
 +        <MSBuild Targets="Publish" Projects="@(ProjectFiles)" BuildInParallel="false" StopOnFirstFailure="true" Properties="Configuration=$(BUILDCONFIG);PackageRuntime=$(PackageRuntime);Version=$(RunnerVersion);$(PublishRuntimeIdentifier);PublishDir=$(MSBuildProjectDirectory)/../_layout/bin" />
