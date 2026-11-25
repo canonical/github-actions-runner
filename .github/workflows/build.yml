@@ -84,11 +84,12 @@ jobs:
       working-directory: src
       if: matrix.runtime == 'linux-x64'
 
-    - name: L0 (patched native ppc64le/s390x)
-      if: matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-s390x'
+    # L0 uses DEBUG-only test hooks; keep Release layout/package validation separate.
+    - name: L0 (native architectures)
+      if: matrix.runtime == 'linux-arm64' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-s390x'
       run: |
         unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
-        ./dev.sh test Release ${{ matrix.runtime }}
+        ./dev.sh test Debug ${{ matrix.runtime }}
       working-directory: src
 
     # Create runner package tar.gz/zip
