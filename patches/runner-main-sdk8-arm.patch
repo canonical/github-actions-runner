@@ -9,7 +9,7 @@ index 5613d3c2..d4ab08e5 100644
 +  <PropertyGroup Condition="'$(BUILD_OS)' == 'Linux' AND '$(PackageRuntime)' == 'linux-arm'">
 +    <DefineConstants>$(DefineConstants);ARM</DefineConstants>
 +  </PropertyGroup>
-
+ 
    <!-- Set TRACE/DEBUG vars -->
    <PropertyGroup>
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
@@ -19,7 +19,7 @@ index ccb4e7c9..6507aba6 100755
 @@ -2,6 +2,9 @@
  PACKAGERUNTIME=$1
  PRECACHE=$2
-
+ 
 +# Canonical ARM32-only runtime; kept separate from upstream Node version pins.
 +NODE22_VERSION="22.23.4"
 +
@@ -40,12 +40,12 @@ index 35e44227..e15e9478 100755
 +++ b/src/Misc/layoutbin/runsvc.sh
 @@ -11,6 +11,9 @@ if [ -f ".path" ]; then
  fi
-
+ 
  nodever="node24"
 +if [[ "$(uname -m)" == "armv7l" ]]; then
 +    nodever="node22"
 +fi
-
+ 
  # insert anything to setup env when running as a service
  # run the host process which keep the listener alive
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
@@ -55,11 +55,11 @@ index 4d48cc36..93dc2176 100644
 @@ -86,6 +86,8 @@ namespace GitHub.Runner.Common
              public static readonly Architecture PlatformArchitecture = Architecture.X64;
  #endif
-
+ 
 +            public static readonly string Arm32NodeVersion = "node22";
 +
              public static readonly TimeSpan ExitOnUnloadTimeout = TimeSpan.FromSeconds(30);
-
+ 
              public static class CommandLine
 diff --git a/src/Runner.Common/Runner.Common.csproj b/src/Runner.Common/Runner.Common.csproj
 index 257a759a..5047627a 100644
@@ -67,7 +67,7 @@ index 257a759a..5047627a 100644
 +++ b/src/Runner.Common/Runner.Common.csproj
 @@ -1,9 +1,9 @@
  <Project Sdk="Microsoft.NET.Sdk">
-
+ 
    <PropertyGroup>
 -    <TargetFramework>net8.0</TargetFramework>
 +    <TargetFramework>net9.0</TargetFramework>
@@ -91,7 +91,7 @@ index e33de2e8..a37ac4a8 100644
 +                Constants.Runner.Platform == Constants.OSPlatform.Linux
 +                ? new[] { Constants.Runner.Arm32NodeVersion }
 +                : new[] { "node24" });
-
+ 
          public static string GetInternalNodeVersion()
          {
 -            return "node24";
@@ -108,7 +108,7 @@ index 08adb988..5c2c2d11 100644
 +++ b/src/Runner.Listener/Runner.Listener.csproj
 @@ -1,9 +1,9 @@
  <Project Sdk="Microsoft.NET.Sdk">
-
+ 
    <PropertyGroup>
 -    <TargetFramework>net8.0</TargetFramework>
 +    <TargetFramework>net9.0</TargetFramework>
@@ -124,7 +124,7 @@ index 51ee3ce4..49272a23 100644
 +++ b/src/Runner.PluginHost/Runner.PluginHost.csproj
 @@ -1,9 +1,9 @@
  ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+ 
    <PropertyGroup>
 -    <TargetFramework>net8.0</TargetFramework>
 +    <TargetFramework>net9.0</TargetFramework>
@@ -140,7 +140,7 @@ index 1ddd57eb..60d7662b 100644
 +++ b/src/Runner.Plugins/Runner.Plugins.csproj
 @@ -1,9 +1,9 @@
  ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+ 
    <PropertyGroup>
 -    <TargetFramework>net8.0</TargetFramework>
 +    <TargetFramework>net9.0</TargetFramework>
@@ -156,7 +156,7 @@ index 278bb064..a27289f6 100644
 +++ b/src/Runner.Sdk/Runner.Sdk.csproj
 @@ -1,9 +1,9 @@
  ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+ 
    <PropertyGroup>
 -    <TargetFramework>net8.0</TargetFramework>
 +    <TargetFramework>net9.0</TargetFramework>
@@ -173,7 +173,7 @@ index 88818c5f..a60ffb41 100644
 @@ -55,8 +55,11 @@ namespace GitHub.Runner.Worker.Handlers
                  handler = HostContext.CreateService<INodeScriptActionHandler>();
                  var nodeData = data as NodeJSActionExecutionData;
-
+ 
 -                // Keep accepting legacy action manifests, but execute all JavaScript actions using node24.
 -                nodeData.NodeVersion = "node24";
 +                // ARM32 has no Node 24 binary; use the fork-provided Node 22 bundle.
@@ -181,7 +181,7 @@ index 88818c5f..a60ffb41 100644
 +                                       Constants.Runner.Platform == Constants.OSPlatform.Linux
 +                    ? Constants.Runner.Arm32NodeVersion
 +                    : "node24";
-
+ 
                  (handler as INodeScriptActionHandler).Data = nodeData;
              }
 diff --git a/src/Runner.Worker/Runner.Worker.csproj b/src/Runner.Worker/Runner.Worker.csproj
@@ -190,7 +190,7 @@ index 33e2b2ff..44528d75 100644
 +++ b/src/Runner.Worker/Runner.Worker.csproj
 @@ -1,9 +1,9 @@
  <Project Sdk="Microsoft.NET.Sdk">
-
+ 
    <PropertyGroup>
 -    <TargetFramework>net8.0</TargetFramework>
 +    <TargetFramework>net9.0</TargetFramework>
@@ -206,7 +206,7 @@ index c02c7b78..66820c92 100644
 +++ b/src/Sdk/Sdk.csproj
 @@ -1,9 +1,9 @@
  <Project Sdk="Microsoft.NET.Sdk">
-
+ 
      <PropertyGroup>
 -        <TargetFramework>net8.0</TargetFramework>
 +        <TargetFramework>net9.0</TargetFramework>
@@ -237,7 +237,7 @@ index 5e52cf98..aad83ee5 100644
 +﻿using GitHub.Runner.Common;
  using GitHub.Runner.Common.Util;
  using Xunit;
-
+ 
 @@ -6,36 +6,30 @@ namespace GitHub.Runner.Common.Tests.Util
  {
      public class NodeUtilL0
@@ -263,7 +263,7 @@ index 5e52cf98..aad83ee5 100644
 +                           Constants.Runner.Platform == Constants.OSPlatform.Linux
 +                ? Constants.Runner.Arm32NodeVersion
 +                : "node24";
-
+ 
 -                Assert.Equal("node24", NodeUtil.GetInternalNodeVersion());
 -            }
 -            finally
@@ -272,7 +272,7 @@ index 5e52cf98..aad83ee5 100644
 -            }
 +            Assert.Equal(expected, NodeUtil.GetInternalNodeVersion());
          }
-
+ 
          [Fact]
          [Trait("Level", "L0")]
          [Trait("Category", "Common")]
@@ -294,7 +294,7 @@ index 001503a0..9819d338 100644
 --- a/src/Test/L0/Worker/HandlerFactoryL0.cs
 +++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
 @@ -89,7 +89,11 @@ namespace GitHub.Runner.Common.Tests.Worker
-
+ 
                      Assert.NotNull(handler);
                      Assert.Same(data, handler.Data);
 -                    Assert.Equal("node24", handler.Data.NodeVersion);
@@ -332,7 +332,7 @@ index 6eb6df20..582f7b57 100755
 +DOTNETSDK_VERSION="9.0.318"
  DOTNETSDK_INSTALLDIR="$DOTNETSDK_ROOT/$DOTNETSDK_VERSION"
  RUNNER_VERSION=$(cat runnerversion)
-
+ 
 @@ -52,10 +52,7 @@ elif [[ "$CURRENT_PLATFORM" == 'linux' ]]; then
      if command -v uname > /dev/null; then
          CPU_NAME=$(uname -m)
@@ -365,4 +365,4 @@ index 67f951ec..70cfe5c2 100644
 +    "version": "9.0.318"
    }
  }
-# From upstream commit: 1060fd3acfef295496f6843c2ec134fd74a70dc5
+# From upstream commit: aea9aaa3a0b49933412c6f59d7f05be037207a28
