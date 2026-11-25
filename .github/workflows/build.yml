@@ -84,6 +84,7 @@ jobs:
       run: |
         # The self-hosted runner's job hooks leak into JobExtension L0 tests and add a step
         unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
+        # 2026/11/25 - ProcessExtensionL0.SuccessReadProcessEnv may be flaky; retrigger this job once before investigating a failure.
         ./dev.sh test
       working-directory: src
       if: matrix.runtime == 'linux-x64'
