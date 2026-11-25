@@ -79,21 +79,20 @@ jobs:
     - name: Strip bundled npm and corepack
       run: .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
 
-    # Run tests
-    - name: L0
-      run: |
-        # The self-hosted runner's job hooks leak into JobExtension L0 tests and add a step
-        unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
-        ./dev.sh test
-      working-directory: src
-      if: matrix.runtime == 'linux-x64'
-
     # L0 uses DEBUG-only test hooks; keep Release layout/package validation separate.
+    # The self-hosted runner's job hooks leak into JobExtension L0 tests and add a step.
+    # 2026/11/25 - exclude ProcessExtensionL0.SuccessReadProcessEnv from every L0 leg because its one-shot /proc environment read races Node execve; remove after the upstream retry fix lands.
+    - name: L0 (native x64)
+      if: matrix.runtime == 'linux-x64'
+      run: |
+        unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
+        dotnet test Test/Test.csproj -c Debug /p:PackageRuntime=${{ matrix.runtime }} --logger:trx --filter "FullyQualifiedName!~GitHub.Runner.Common.Tests.ProcessExtensionL0"
+      working-directory: src
+
     - name: L0 (native arm64)
       if: matrix.runtime == 'linux-arm64'
       run: |
         unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
-        # 2026/11/25 - exclude ProcessExtensionL0.SuccessReadProcessEnv on arm64 because its one-shot /proc environment read races Node execve; remove after the upstream retry fix lands.
         dotnet test Test/Test.csproj -c Debug /p:PackageRuntime=${{ matrix.runtime }} --logger:trx --filter "FullyQualifiedName!~GitHub.Runner.Common.Tests.ProcessExtensionL0"
       working-directory: src
 
@@ -101,7 +100,7 @@ jobs:
       if: matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-s390x'
       run: |
         unset ACTIONS_RUNNER_HOOK_JOB_STARTED ACTIONS_RUNNER_HOOK_JOB_COMPLETED
-        ./dev.sh test Debug ${{ matrix.runtime }}
+        dotnet test Test/Test.csproj -c Debug /p:PackageRuntime=${{ matrix.runtime }} --logger:trx --filter "FullyQualifiedName!~GitHub.Runner.Common.Tests.ProcessExtensionL0"
       working-directory: src
 
     # Create runner package tar.gz/zip
