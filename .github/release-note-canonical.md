@@ -14,3 +14,7 @@ On Ubuntu 26.04, `dotnet-runtime-8.0` is in `ppa:dotnet/backports`:
 sudo add-apt-repository -y ppa:dotnet/backports
 sudo apt-get install -y dotnet-runtime-8.0
 ```
+
+## Linux ARM32 runner override
+
+The ARM32 runner build retains the local `RUNNER_IGNORE_ARM32_KILL_SWITCH` environment variable. It is read only from the runner process environment, not from workflow variables or the Actions service. The default ignores service-driven ARM32 deprecation and kill signals; set it to `false` to explicitly re-enable them.
