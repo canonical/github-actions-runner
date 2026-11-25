@@ -14,7 +14,7 @@ index 9c069b1..e7b433e 100644
    <!-- Set TRACE/DEBUG vars -->
    <PropertyGroup>
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index c385c5e..aff00b4 100755
+index c385c5e..f3ae9b0 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,7 @@ PRECACHE=$2
@@ -70,13 +70,12 @@ index c385c5e..aff00b4 100755
          # Extract to layout.
          mkdir -p "$target_dir" || checkRC 'mkdir'
          local nested_dir=""
-@@ -187,3 +201,8 @@ fi
+@@ -187,3 +201,7 @@ fi
  if [[ "$PACKAGERUNTIME" == "linux-arm" ]]; then
      acquireExternalTool "$NODE_URL/v${NODE20_VERSION}/node-v${NODE20_VERSION}-linux-armv7l.tar.gz" node20 fix_nested_dir
  fi
 +
 +if [[ "$PACKAGERUNTIME" == "linux-riscv64" ]]; then
-+    acquireExternalTool "$NODE_UNOFFICIAL_URL/v${NODE20_VERSION}/node-v${NODE20_VERSION}-linux-riscv64.tar.gz" node20 fix_nested_dir 257bac5e327ccabce86863965417ee40d00d5f23d2825ddff528adc5116e7c13
 +    acquireExternalTool "$NODE_UNOFFICIAL_URL/v${NODE24_VERSION}/node-v${NODE24_VERSION}-linux-riscv64.tar.gz" node24 fix_nested_dir 73acf79cdac8d94792e16ae71871b79457c30ab7ca316c642e6209a516bad4ea
 +fi
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
@@ -119,6 +118,22 @@ index 9c087c8..c9207bc 100644
      <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
      <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
      <Version>$(Version)</Version>
+diff --git a/src/Runner.Common/Util/NodeUtil.cs b/src/Runner.Common/Util/NodeUtil.cs
+index 7b8055b..b812e5a 100644
+--- a/src/Runner.Common/Util/NodeUtil.cs
++++ b/src/Runner.Common/Util/NodeUtil.cs
+@@ -29,7 +29,11 @@ namespace GitHub.Runner.Common.Util
+         }
+ 
+         private const string _defaultNodeVersion = "node24";
++#if RISCV64
++        public static readonly ReadOnlyCollection<string> BuiltInNodeVersions = new(new[] { "node24" });
++#else
+         public static readonly ReadOnlyCollection<string> BuiltInNodeVersions = new(new[] { "node20", "node24" });
++#endif
+         public static string GetInternalNodeVersion()
+         {
+             var forcedInternalNodeVersion = Environment.GetEnvironmentVariable(Constants.Variables.Agent.ForcedInternalNodeVersion);
 diff --git a/src/Runner.Common/Util/VarUtil.cs b/src/Runner.Common/Util/VarUtil.cs
 index 97273a1..766015f 100644
 --- a/src/Runner.Common/Util/VarUtil.cs
@@ -200,6 +215,20 @@ index 3f58d58..1b53d48 100644
      <SelfContained>true</SelfContained>
      <TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
      <NoWarn>NU1701;NU1603;SYSLIB0050;SYSLIB0051</NoWarn>
+diff --git a/src/Runner.Worker/Handlers/HandlerFactory.cs b/src/Runner.Worker/Handlers/HandlerFactory.cs
+index 8044f09..15af54f 100644
+--- a/src/Runner.Worker/Handlers/HandlerFactory.cs
++++ b/src/Runner.Worker/Handlers/HandlerFactory.cs
+@@ -86,6 +86,9 @@ namespace GitHub.Runner.Worker.Handlers
+                 {
+                     bool useNode24ByDefault = executionContext.Global.Variables?.GetBoolean(Constants.Runner.NodeMigration.UseNode24ByDefaultFlag) ?? false;
+                     bool requireNode24 = executionContext.Global.Variables?.GetBoolean(Constants.Runner.NodeMigration.RequireNode24Flag) ?? false;
++#if RISCV64
++                    requireNode24 = true;
++#endif
+ 
+                     var (nodeVersion, configWarningMessage) = NodeUtil.DetermineActionsNodeVersion(environment, useNode24ByDefault, requireNode24);
+                     var (finalNodeVersion, platformWarningMessage) = NodeUtil.CheckNodeVersionForLinuxArm32(nodeVersion, deprecateArm32, killArm32, node20RemovalDate);
 diff --git a/src/Runner.Worker/Runner.Worker.csproj b/src/Runner.Worker/Runner.Worker.csproj
 index 6a7f36e..5ab8a19 100644
 --- a/src/Runner.Worker/Runner.Worker.csproj
@@ -306,6 +335,282 @@ index a91e112..8fedf49 100644
  #else
                          _packageUrl = $"https://github.com/actions/runner/releases/download/v{latestVersion}/actions-runner-{BuildConstants.RunnerPackage.PackageName}-{latestVersion}.zip";
  #endif
+diff --git a/src/Test/L0/ProcessExtensionL0.cs b/src/Test/L0/ProcessExtensionL0.cs
+index d650b48..95e258b 100644
+--- a/src/Test/L0/ProcessExtensionL0.cs
++++ b/src/Test/L0/ProcessExtensionL0.cs
+@@ -28,8 +28,12 @@ namespace GitHub.Runner.Common.Tests
+                 {
+ #if OS_WINDOWS
+                     string node = Path.Combine(TestUtil.GetSrcPath(), @"..\_layout\externals\node20\bin\node");
++#else
++#if RISCV64
++                    string node = Path.Combine(TestUtil.GetSrcPath(), @"../_layout/externals/node24/bin/node");
+ #else
+                     string node = Path.Combine(TestUtil.GetSrcPath(), @"../_layout/externals/node20/bin/node");
++#endif
+                     hc.EnqueueInstance<IProcessInvoker>(new ProcessInvokerWrapper());
+ #endif
+                     var startInfo = new ProcessStartInfo(node, "-e \"setTimeout(function(){{}}, 15 * 1000);\"");
+diff --git a/src/Test/L0/Util/NodeUtilL0.cs b/src/Test/L0/Util/NodeUtilL0.cs
+index 0a493c7..41d0355 100644
+--- a/src/Test/L0/Util/NodeUtilL0.cs
++++ b/src/Test/L0/Util/NodeUtilL0.cs
+@@ -13,7 +13,11 @@ namespace GitHub.Runner.Common.Tests.Util
+         [Trait("Category", "Common")]
+         [InlineData(null, "node24")]
+         [InlineData("node24", "node24")]
++#if RISCV64
++        [InlineData("node20", "node24")]
++#else
+         [InlineData("node20", "node20")]
++#endif
+         [InlineData("node16", "node24")] // Unsupported versions are ignored
+         public void TestInternalNodeVersion(string forcedVersion, string expectedVersion)
+         {
+diff --git a/src/Test/L0/Worker/HandlerFactoryL0.cs b/src/Test/L0/Worker/HandlerFactoryL0.cs
+index e8ecdef..b9857e5 100644
+--- a/src/Test/L0/Worker/HandlerFactoryL0.cs
++++ b/src/Test/L0/Worker/HandlerFactoryL0.cs
+@@ -30,9 +30,15 @@ namespace GitHub.Runner.Common.Tests.Worker
+         [Theory]
+         [Trait("Level", "L0")]
+         [Trait("Category", "Worker")]
++#if RISCV64
++        [InlineData("node12", "node24")]
++        [InlineData("node16", "node24")]
++        [InlineData("node20", "node24")]
++#else
+         [InlineData("node12", "node20")]
+         [InlineData("node16", "node20")]
+         [InlineData("node20", "node20")]
++#endif
+         [InlineData("node24", "node24")]
+         public void IsNodeVersionUpgraded(string inputVersion, string expectedVersion)
+         {
+@@ -74,6 +80,83 @@ namespace GitHub.Runner.Common.Tests.Worker
+             }
+         }
+ 
++#if RISCV64
++        [Theory]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Worker")]
++        [InlineData("node12", false, false, false, false)]
++        [InlineData("node16", false, true, false, false)]
++        [InlineData("node20", false, false, false, false)]
++        [InlineData("node20", true, true, false, false)]
++        [InlineData("node20", true, true, false, true)]
++        [InlineData("node20", false, true, true, false)]
++        [InlineData("node24", false, true, false, false)]
++        public void RiscVActionsAlwaysUseNode24(string requestedVersion, bool useNode24ByDefault, bool allowNode20, bool forceNode24, bool systemAllowNode20)
++        {
++            using (TestHostContext hc = CreateTestContext())
++            {
++                var previousSystemValue = Environment.GetEnvironmentVariable(Constants.Runner.NodeMigration.AllowUnsecureNodeVersionVariable);
++                try
++                {
++                    Environment.SetEnvironmentVariable(Constants.Runner.NodeMigration.AllowUnsecureNodeVersionVariable, systemAllowNode20 ? "true" : null);
++                    var hf = new HandlerFactory();
++                    hf.Initialize(hc);
++
++                    var variables = new Dictionary<string, VariableValue>
++                    {
++                        { Constants.Runner.NodeMigration.UseNode24ByDefaultFlag, new VariableValue(useNode24ByDefault.ToString()) },
++                        { Constants.Runner.NodeMigration.WarnOnNode20Flag, new VariableValue("true") }
++                    };
++                    var upgradedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++                    var deprecatedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++                    _ec.Setup(x => x.Global).Returns(new GlobalContext()
++                    {
++                        Variables = new Variables(hc, variables),
++                        EnvironmentVariables = new Dictionary<string, string>(),
++                        UpgradedToNode24Actions = upgradedActions,
++                        DeprecatedNode20Actions = deprecatedActions
++                    });
++
++                    var environment = new Dictionary<string, string>
++                    {
++                        { Constants.Runner.NodeMigration.ForceNode24Variable, forceNode24.ToString() }
++                    };
++                    if (!systemAllowNode20)
++                    {
++                        environment[Constants.Runner.NodeMigration.AllowUnsecureNodeVersionVariable] = allowNode20.ToString();
++                    }
++
++                    var data = new NodeJSActionExecutionData { NodeVersion = requestedVersion };
++                    var handler = hf.Create(
++                        _ec.Object,
++                        new RepositoryPathReference { Name = "example/action", Ref = "v1" },
++                        new Mock<IStepHost>().Object,
++                        data,
++                        new Dictionary<string, string>(),
++                        environment,
++                        new Variables(hc, new Dictionary<string, VariableValue>()),
++                        "",
++                        new List<JobExtensionRunner>()) as INodeScriptActionHandler;
++
++                    Assert.Equal("node24", handler.Data.NodeVersion);
++                    Assert.Empty(deprecatedActions);
++                    if (requestedVersion == "node24")
++                    {
++                        Assert.Empty(upgradedActions);
++                    }
++                    else
++                    {
++                        Assert.Contains("example/action@v1", upgradedActions);
++                    }
++                }
++                finally
++                {
++                    Environment.SetEnvironmentVariable(Constants.Runner.NodeMigration.AllowUnsecureNodeVersionVariable, previousSystemValue);
++                }
++            }
++        }
++#endif
++
+ 
+ 
+         [Fact]
+@@ -134,12 +217,14 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 };
+                 Variables serverVariables = new(hc, variables);
+                 var deprecatedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++                var upgradedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+ 
+                 _ec.Setup(x => x.Global).Returns(new GlobalContext()
+                 {
+                     Variables = serverVariables,
+                     EnvironmentVariables = new Dictionary<string, string>(),
+-                    DeprecatedNode20Actions = deprecatedActions
++                    DeprecatedNode20Actions = deprecatedActions,
++                    UpgradedToNode24Actions = upgradedActions
+                 });
+ 
+                 var actionRef = new RepositoryPathReference
+@@ -164,7 +249,13 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 );
+ 
+                 // Assert.
++#if RISCV64
++                Assert.Empty(deprecatedActions);
++                Assert.Contains("actions/checkout@v4", upgradedActions);
++#else
+                 Assert.Contains("actions/checkout@v4", deprecatedActions);
++                Assert.Empty(upgradedActions);
++#endif
+             }
+         }
+ 
+@@ -284,12 +375,14 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 };
+                 Variables serverVariables = new(hc, variables);
+                 var deprecatedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++                var upgradedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+ 
+                 _ec.Setup(x => x.Global).Returns(new GlobalContext()
+                 {
+                     Variables = serverVariables,
+                     EnvironmentVariables = new Dictionary<string, string>(),
+-                    DeprecatedNode20Actions = deprecatedActions
++                    DeprecatedNode20Actions = deprecatedActions,
++                    UpgradedToNode24Actions = upgradedActions
+                 });
+ 
+                 var actionRef = new RepositoryPathReference
+@@ -313,8 +406,14 @@ namespace GitHub.Runner.Common.Tests.Worker
+                     new List<JobExtensionRunner>()
+                 );
+ 
+-                // Assert - node12 gets migrated to node20 and should be tracked
++                // Assert - the action is tracked according to its final runtime.
++#if RISCV64
++                Assert.Empty(deprecatedActions);
++                Assert.Contains("some-org/old-action@v1", upgradedActions);
++#else
+                 Assert.Contains("some-org/old-action@v1", deprecatedActions);
++                Assert.Empty(upgradedActions);
++#endif
+             }
+         }
+ 
+@@ -335,12 +434,14 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 };
+                 Variables serverVariables = new(hc, variables);
+                 var deprecatedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++                var upgradedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+ 
+                 _ec.Setup(x => x.Global).Returns(new GlobalContext()
+                 {
+                     Variables = serverVariables,
+                     EnvironmentVariables = new Dictionary<string, string>(),
+-                    DeprecatedNode20Actions = deprecatedActions
++                    DeprecatedNode20Actions = deprecatedActions,
++                    UpgradedToNode24Actions = upgradedActions
+                 });
+ 
+                 // Local action: Name is empty, Path is the local path
+@@ -367,7 +468,13 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 );
+ 
+                 // Assert - local action should be tracked with its path
++#if RISCV64
++                Assert.Empty(deprecatedActions);
++                Assert.Contains("./.github/actions/my-action", upgradedActions);
++#else
+                 Assert.Contains("./.github/actions/my-action", deprecatedActions);
++                Assert.Empty(upgradedActions);
++#endif
+             }
+         }
+ 
+@@ -437,7 +544,7 @@ namespace GitHub.Runner.Common.Tests.Worker
+         [Fact]
+         [Trait("Level", "L0")]
+         [Trait("Category", "Worker")]
+-        public void Node20Action_NotUpgradedWhenPhase1Only()
++        public void Node20Action_UsesPlatformDefaultWhenPhase1Only()
+         {
+             using (TestHostContext hc = CreateTestContext())
+             {
+@@ -482,11 +589,15 @@ namespace GitHub.Runner.Common.Tests.Worker
+                     new List<JobExtensionRunner>()
+                 ) as INodeScriptActionHandler;
+ 
+-                // In Phase 1 (no UseNode24ByDefault), action stays on node20
+-                // and should be in DeprecatedNode20Actions
++#if RISCV64
++                Assert.Equal("node24", handler.Data.NodeVersion);
++                Assert.Empty(deprecatedActions);
++                Assert.Contains("actions/checkout@v4", upgradedActions);
++#else
+                 Assert.Equal("node20", handler.Data.NodeVersion);
+                 Assert.Contains("actions/checkout@v4", deprecatedActions);
+                 Assert.Empty(upgradedActions);
++#endif
+             }
+         }
+ 
+@@ -797,7 +908,6 @@ namespace GitHub.Runner.Common.Tests.Worker
+                 }
+                 else
+                 {
+-                    // On non-ARM32, should proceed normally (node20 stays)
+                     var handler = hf.Create(
+                         _ec.Object,
+                         actionRef,
+@@ -810,7 +920,11 @@ namespace GitHub.Runner.Common.Tests.Worker
+                         new List<JobExtensionRunner>()
+                     ) as INodeScriptActionHandler;
+ 
++#if RISCV64
++                    Assert.Equal("node24", handler.Data.NodeVersion);
++#else
+                     Assert.Equal("node20", handler.Data.NodeVersion);
++#endif
+                 }
+             }
+         }
 diff --git a/src/Test/L0/Worker/StepHostL0.cs b/src/Test/L0/Worker/StepHostL0.cs
 index bac7d41..d81bf9b 100644
 --- a/src/Test/L0/Worker/StepHostL0.cs

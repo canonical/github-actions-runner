@@ -34,9 +34,14 @@ cd src
 ```
 
 The SDK must be installed separately from .NET 8 so the RISC-V build does not
-select the .NET 8 SDK. Node 20 and 24 archives are checksum-verified before
-extraction. The resulting archive is
+select the .NET 8 SDK. Only Node 24 is bundled, and its archive is
+checksum-verified before extraction. The resulting archive is
 `_package/actions-runner-linux-riscv64-<version>.tar.gz`.
+
+Actions requesting Node 12, 16 or 20 run with Node 24 on RISC-V, even when
+Node 20 is explicitly enabled by an environment variable. The internal Node
+runtime also falls back to Node 24 if Node 20 is requested. Older actions may
+be incompatible with Node 24 and may need to be updated.
 
 ## Enable CI and releases
 

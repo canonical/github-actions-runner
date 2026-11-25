@@ -116,12 +116,6 @@ jobs:
           sed -i "s/${current_version}/8.0/" src/global.json
         fi
 
-    - name: Ensure patched WebUtilities dependency
-      run: |
-        if ! grep -q 'PackageReference Include="Microsoft.AspNetCore.WebUtilities"' src/Runner.Worker/Runner.Worker.csproj; then
-          dotnet add src/Runner.Worker/Runner.Worker.csproj package Microsoft.AspNetCore.WebUtilities --version 8.0.34 --no-restore
-        fi
-
     # Build runner layout
     - name: Build & Layout Release
       run: |
@@ -130,7 +124,12 @@ jobs:
 
     # Fork-only: see .github/scripts/strip-bundled-npm.sh.
     - name: Strip bundled npm and corepack
-      run: .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
+      run: |
+        if [[ "${{ matrix.runtime }}" == "linux-riscv64" ]] && compgen -G '_layout/externals/node20*' > /dev/null; then
+          echo "::error::RISC-V runner must not bundle Node 20."
+          exit 1
+        fi
+        .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
 
     - name: RISC-V L0
       if: matrix.runtime == 'linux-riscv64'
