@@ -1,5 +1,5 @@
 diff --git a/src/Misc/externals.sh b/src/Misc/externals.sh
-index c385c5ef..6d42de8f 100755
+index c385c5ef..6a83be46 100755
 --- a/src/Misc/externals.sh
 +++ b/src/Misc/externals.sh
 @@ -4,6 +4,9 @@ PRECACHE=$2
@@ -18,6 +18,34 @@ index c385c5ef..6d42de8f 100755
      acquireExternalTool "$NODE_URL/v${NODE20_VERSION}/node-v${NODE20_VERSION}-linux-armv7l.tar.gz" node20 fix_nested_dir
 +    acquireExternalTool "$NODE_URL/v${NODE22_VERSION}/node-v${NODE22_VERSION}-linux-armv7l.tar.gz" node22 fix_nested_dir
  fi
+diff --git a/src/Misc/layoutbin/runsvc.sh b/src/Misc/layoutbin/runsvc.sh
+index 35e44227..d11118f7 100755
+--- a/src/Misc/layoutbin/runsvc.sh
++++ b/src/Misc/layoutbin/runsvc.sh
+@@ -10,7 +10,7 @@ if [ -f ".path" ]; then
+     echo ".path=${PATH}"
+ fi
+ 
+-nodever="node24"
++nodever="node22"
+ 
+ # insert anything to setup env when running as a service
+ # run the host process which keep the listener alive
+diff --git a/src/Misc/layoutbin/update.sh.template b/src/Misc/layoutbin/update.sh.template
+index 82ada18b..df4c7f89 100755
+--- a/src/Misc/layoutbin/update.sh.template
++++ b/src/Misc/layoutbin/update.sh.template
+@@ -135,8 +135,8 @@ if [[ "$currentplatform" == 'darwin'  && $restartinteractiverunner -eq 0 ]]; the
+     then
+         # inspect the open file handles to find the node process
+         # we can't actually inspect the process using ps because it uses relative paths and doesn't follow symlinks
+-        # Try finding node24 first, then fallback to earlier versions if needed
+-        nodever="node24"
++        # linux-arm (armv7l) bundles node22 instead of node24; try it first, then fall back to earlier versions
++        nodever="node22"
+         path=$(lsof -a -g "$procgroup" -F n | grep $nodever/bin/node | grep externals | tail -1 | cut -c2-)
+         if [[ $? -ne 0 || -z "$path" ]] # Fallback if RunnerService.js was started with node20
+         then
 diff --git a/src/Runner.Common/Constants.cs b/src/Runner.Common/Constants.cs
 index 4acf4943..97d3dd87 100644
 --- a/src/Runner.Common/Constants.cs
