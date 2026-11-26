@@ -1,0 +1,303 @@
+diff --git a/src/Test/L0/DotnetsdkDownloadScriptL0.cs b/src/Test/L0/DotnetsdkDownloadScriptL0.cs
+index 9d3fbd2..be17541 100644
+--- a/src/Test/L0/DotnetsdkDownloadScriptL0.cs
++++ b/src/Test/L0/DotnetsdkDownloadScriptL0.cs
+@@ -7,4 +7,298 @@ using System;
+ namespace GitHub.Runner.Common.Tests
+ {
++#if OS_LINUX
++    public sealed class PatchSyncL0
++    {
++        private static readonly string[] SyncWorkflows = { "patch_update_main.yml", "patch_update_release.yml" };
++
++        [Theory]
++        [InlineData("")]
++        [InlineData("false")]
++        [InlineData("true ")]
++        [InlineData("1")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void DisabledRiscVDoesNotRequireAPatch(string enabled)
++        {
++            foreach (string workflow in SyncWorkflows)
++            {
++                var result = GetBaseline(workflow, "riscv64", enabled, "global", "missing.patch", "commit");
++
++                Assert.Equal(0, result.ExitCode);
++                Assert.Equal(string.Empty, result.Output);
++            }
++        }
++
++        [Theory]
++        [InlineData("ppc64le", "false")]
++        [InlineData("s390x", "true")]
++        [InlineData("arm", "")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void ExistingArchitecturesKeepTheSharedBaseline(string architecture, string enabled)
++        {
++            foreach (string workflow in SyncWorkflows)
++            {
++                var result = GetBaseline(workflow, architecture, enabled, "global", "missing.patch", "commit");
++
++                Assert.Equal(0, result.ExitCode);
++                Assert.Equal("global", result.Output);
++            }
++        }
++
++        [Theory]
++        [InlineData("true", "commit", "# From upstream commit: 0123456789abcdef0123456789abcdef01234567", "0123456789abcdef0123456789abcdef01234567")]
++        [InlineData("TRUE", "commit", "# From upstream commit: 0123456789abcdef0123456789abcdef01234567", "0123456789abcdef0123456789abcdef01234567")]
++        [InlineData("True", "release", "# From upstream release: v2.338.2", "v2.338.2")]
++        [InlineData("tRuE", "release", "# From upstream release: v2.338.2", "v2.338.2")]
++        [InlineData("true", "commit", "# From upstream commit: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void EnabledRiscVUsesItsOwnPatchBaseline(string enabled, string kind, string marker, string expected)
++        {
++            string patch = Path.GetTempFileName();
++            try
++            {
++                File.WriteAllText(patch, $"diff --git a/file b/file\n{marker}\n");
++
++                foreach (string workflow in SyncWorkflows)
++                {
++                    var result = GetBaseline(workflow, "riscv64", enabled, "newer-global", patch, kind);
++
++                    Assert.Equal(0, result.ExitCode);
++                    Assert.Equal(expected, result.Output);
++                }
++            }
++            finally
++            {
++                File.Delete(patch);
++            }
++        }
++
++        [Theory]
++        [InlineData("commit", "# From upstream release: v2.338.2")]
++        [InlineData("commit", "# From upstream commit: not-a-commit")]
++        [InlineData("release", "# From upstream release: ")]
++        [InlineData("release", "# From upstream release: -not-a-tag")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void EnabledRiscVRejectsInvalidPatchMarkers(string kind, string marker)
++        {
++            string patch = Path.GetTempFileName();
++            try
++            {
++                File.WriteAllText(patch, $"{marker}\n");
++
++                foreach (string workflow in SyncWorkflows)
++                {
++                    var result = GetBaseline(workflow, "riscv64", "true", "global", patch, kind);
++
++                    Assert.NotEqual(0, result.ExitCode);
++                    Assert.Contains("Invalid RISC-V patch marker", result.Error);
++                }
++            }
++            finally
++            {
++                File.Delete(patch);
++            }
++        }
++
++        [Fact]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void EnabledRiscVRejectsMissingPatch()
++        {
++            string patch = Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.patch");
++
++            foreach (string workflow in SyncWorkflows)
++            {
++                var result = GetBaseline(workflow, "riscv64", "true", "global", patch, "commit");
++
++                Assert.NotEqual(0, result.ExitCode);
++                Assert.Contains("Invalid RISC-V patch marker", result.Error);
++            }
++        }
++
++        [Theory]
++        [InlineData("")]
++        [InlineData("false")]
++        [InlineData("true ")]
++        [InlineData("1")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void StaleWorkflowTestPatchDoesNotBlockDisabledRiscV(string enabled)
++        {
++            string temp = CreateTestPatchFixture("changed\n");
++            try
++            {
++                var result = ApplyTestPatch(temp, enabled);
++
++                Assert.Equal(0, result.ExitCode);
++                Assert.Contains("::warning::", result.Output);
++                Assert.Equal("changed\n", File.ReadAllText(Path.Combine(temp, "input")));
++            }
++            finally
++            {
++                Directory.Delete(temp, recursive: true);
++            }
++        }
++
++        [Theory]
++        [InlineData("true")]
++        [InlineData("TRUE")]
++        [InlineData("True")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void StaleWorkflowTestPatchBlocksEnabledRiscV(string enabled)
++        {
++            string temp = CreateTestPatchFixture("changed\n");
++            try
++            {
++                var result = ApplyTestPatch(temp, enabled);
++
++                Assert.NotEqual(0, result.ExitCode);
++                Assert.Contains("::error::", result.Output);
++                Assert.Equal("changed\n", File.ReadAllText(Path.Combine(temp, "input")));
++            }
++            finally
++            {
++                Directory.Delete(temp, recursive: true);
++            }
++        }
++
++        [Theory]
++        [InlineData("")]
++        [InlineData("TRUE")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void CompatibleWorkflowTestPatchIsApplied(string enabled)
++        {
++            string temp = CreateTestPatchFixture("before\n");
++            try
++            {
++                var result = ApplyTestPatch(temp, enabled);
++
++                Assert.Equal(0, result.ExitCode);
++                Assert.Equal("after\n", File.ReadAllText(Path.Combine(temp, "input")));
++            }
++            finally
++            {
++                Directory.Delete(temp, recursive: true);
++            }
++        }
++
++        [Theory]
++        [InlineData("build.yml")]
++        [InlineData("release.yml")]
++        [Trait("Level", "L0")]
++        [Trait("Category", "Common")]
++        public void DotnetSetupRejectsUnverifiedArchives(string workflow)
++        {
++            string temp = Path.Combine(Path.GetTempPath(), $"riscv-dotnet-{Guid.NewGuid():N}");
++            string tools = Path.Combine(temp, "bin");
++            string githubEnv = Path.Combine(temp, "github-env");
++            string githubPath = Path.Combine(temp, "github-path");
++            Directory.CreateDirectory(tools);
++
++            try
++            {
++                string curl = Path.Combine(tools, "curl");
++                File.WriteAllText(curl, "#!/bin/sh\nwhile [ \"$#\" -gt 0 ]; do\n  if [ \"$1\" = -o ]; then shift; printf corrupt > \"$1\"; exit 0; fi\n  shift\ndone\nexit 1\n");
++                if (!OperatingSystem.IsWindows())
++                {
++                    File.SetUnixFileMode(curl, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
++                }
++
++                string script = GetWorkflowBlock(workflow, "riscv64-dotnet-setup");
++                var result = RunShell(script, Array.Empty<string>(), startInfo =>
++                {
++                    startInfo.Environment["PATH"] = $"{tools}:{Environment.GetEnvironmentVariable("PATH")}";
++                    startInfo.Environment["RUNNER_TEMP"] = temp;
++                    startInfo.Environment["GITHUB_ENV"] = githubEnv;
++                    startInfo.Environment["GITHUB_PATH"] = githubPath;
++                });
++
++                Assert.NotEqual(0, result.ExitCode);
++                Assert.Contains("FAILED", result.Output);
++                Assert.False(File.Exists(githubEnv));
++                Assert.False(File.Exists(githubPath));
++                Assert.False(Directory.Exists(Path.Combine(temp, "dotnet-riscv64-10.0.115")));
++            }
++            finally
++            {
++                Directory.Delete(temp, recursive: true);
++            }
++        }
++
++        private static (int ExitCode, string Output, string Error) GetBaseline(string workflow, params string[] arguments)
++        {
++            string script = GetWorkflowBlock(workflow, "patch-sync-baseline");
++            return RunShell($"{script}\npatch_sync_baseline \"$@\"", arguments);
++        }
++
++        private static string CreateTestPatchFixture(string contents)
++        {
++            string temp = Path.Combine(Path.GetTempPath(), $"workflow-test-patch-{Guid.NewGuid():N}");
++            Directory.CreateDirectory(temp);
++            File.WriteAllText(Path.Combine(temp, "input"), contents);
++            File.WriteAllText(Path.Combine(temp, "test.patch"), "diff --git a/input b/input\n--- a/input\n+++ b/input\n@@ -1 +1 @@\n-before\n+after\n");
++            return temp;
++        }
++
++        private static (int ExitCode, string Output, string Error) ApplyTestPatch(string temp, string enabled)
++        {
++            string script = GetWorkflowBlock("build.yml", "workflow-test-patch");
++            return RunShell($"{script}\napply_workflow_test_patch \"$@\"", new[] { enabled, "test.patch" }, startInfo =>
++            {
++                startInfo.WorkingDirectory = temp;
++            });
++        }
++
++        private static string GetWorkflowBlock(string workflow, string marker)
++        {
++            string path = Path.GetFullPath(Path.Combine(TestUtil.GetSrcPath(), "..", ".github", "workflows", workflow));
++            string[] lines = File.ReadAllLines(path);
++            int start = Array.FindIndex(lines, line => line.Trim() == $"# {marker}:start");
++            int end = Array.FindIndex(lines, line => line.Trim() == $"# {marker}:end");
++            Assert.True(start >= 0 && end > start, $"Missing {marker} block in {workflow}");
++
++            var script = new System.Text.StringBuilder();
++            for (int i = start + 1; i < end; i++)
++            {
++                script.AppendLine(lines[i].TrimStart());
++            }
++
++            return script.ToString();
++        }
++
++        private static (int ExitCode, string Output, string Error) RunShell(
++            string script,
++            string[] arguments,
++            Action<System.Diagnostics.ProcessStartInfo> configure = null)
++        {
++            var startInfo = new System.Diagnostics.ProcessStartInfo("bash")
++            {
++                RedirectStandardOutput = true,
++                RedirectStandardError = true,
++                UseShellExecute = false,
++            };
++            startInfo.ArgumentList.Add("-c");
++            startInfo.ArgumentList.Add($"set -euo pipefail\n{script}");
++            startInfo.ArgumentList.Add("workflow-test");
++            foreach (string argument in arguments)
++            {
++                startInfo.ArgumentList.Add(argument);
++            }
++
++            configure?.Invoke(startInfo);
++            using var process = System.Diagnostics.Process.Start(startInfo);
++            string output = process.StandardOutput.ReadToEnd().TrimEnd('\r', '\n');
++            string error = process.StandardError.ReadToEnd();
++            process.WaitForExit();
++            return (process.ExitCode, output, error);
++        }
++    }
++#endif
++
+     public sealed class DotnetsdkDownloadScriptL0
+     {

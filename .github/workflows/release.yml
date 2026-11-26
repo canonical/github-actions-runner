@@ -91,7 +91,26 @@ jobs:
 
     - name: Install community RISC-V DotNet SDK
       if: matrix.runtime == 'linux-riscv64'
-      run: bash .github/scripts/setup-riscv64-dotnet.sh
+      run: |
+        # riscv64-dotnet-setup:start
+        set -euo pipefail
+
+        version=10.0.115
+        sha256=f06bcd3f7cff2781711150ae817190ce67d630b075be0b0aedeb021049c8a0d4
+        archive="${RUNNER_TEMP:?}/dotnet-sdk-${version}-linux-riscv64.tar.gz"
+        sdk_dir="${RUNNER_TEMP}/dotnet-riscv64-${version}"
+
+        curl -fsSL --retry 3 -o "$archive" \
+          "https://github.com/filipnavara/dotnet-riscv/releases/download/${version}/dotnet-sdk-${version}-linux-riscv64.tar.gz"
+        printf '%s  %s\n' "$sha256" "$archive" | sha256sum --check
+        mkdir -p "$sdk_dir"
+        tar -xzf "$archive" -C "$sdk_dir"
+        rm "$archive"
+
+        "$sdk_dir/dotnet" --version
+        echo "$sdk_dir" >> "${GITHUB_PATH:?}"
+        echo "DOTNET_ROOT=$sdk_dir" >> "${GITHUB_ENV:?}"
+        # riscv64-dotnet-setup:end
 
     - name: Apply patches
       if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm' || matrix.runtime == 'linux-riscv64'
@@ -130,6 +149,10 @@ jobs:
           exit 1
         fi
         .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
+
+    - name: Apply workflow test patch
+      if: matrix.runtime == 'linux-riscv64'
+      run: git apply patches/patch-sync-l0.patch
 
     - name: RISC-V L0
       if: matrix.runtime == 'linux-riscv64'

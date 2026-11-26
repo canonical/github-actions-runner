@@ -69,11 +69,49 @@ jobs:
         env:
           ENABLE_RISCV64_BUILDS: ${{ vars.ENABLE_RISCV64_BUILDS }}
         run: |
+          # patch-sync-baseline:start
+          patch_sync_baseline() {
+            local architecture="$1" enabled="$2" shared_baseline="$3" patch="$4" kind="$5"
+            local prefix marker baseline
+
+            if [[ "$architecture" != "riscv64" ]]; then
+              printf '%s\n' "$shared_baseline"
+              return 0
+            fi
+
+            if [[ "${enabled,,}" != "true" ]]; then
+              return 0
+            fi
+
+            case "$kind" in
+              commit) prefix="# From upstream commit: " ;;
+              release) prefix="# From upstream release: " ;;
+              *) echo "Invalid RISC-V patch marker type: $kind" >&2; return 1 ;;
+            esac
+
+            if [[ ! -f "$patch" ]]; then
+              echo "Invalid RISC-V patch marker: missing $patch" >&2
+              return 1
+            fi
+
+            marker=$(tail -n 1 "$patch")
+            baseline=${marker#"$prefix"}
+            if [[ "$marker" != "$prefix"* || -z "$baseline" ]] ||
+               [[ "$kind" == "commit" && ! "$baseline" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] ||
+               [[ "$kind" == "release" && ! "$baseline" =~ ^v[0-9][0-9A-Za-z.+_-]*$ ]]; then
+              echo "Invalid RISC-V patch marker in $patch" >&2
+              return 1
+            fi
+
+            printf '%s\n' "$baseline"
+          }
+          # patch-sync-baseline:end
+
           mkdir -p patches
           touch successful_arches.txt
 
           for arch in ppc64le s390x arm riscv64; do
-            patch_baseline=$(bash .github/scripts/patch-sync-baseline.sh "$arch" "${ENABLE_RISCV64_BUILDS:-}" "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "patches/runner-sdk8-$arch.patch" release)
+            patch_baseline=$(patch_sync_baseline "$arch" "${ENABLE_RISCV64_BUILDS:-}" "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "patches/runner-sdk8-$arch.patch" release)
             if [[ -z "$patch_baseline" ]]; then
               echo "Skipping $arch while RISC-V builds are disabled"
               continue
