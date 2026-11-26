@@ -12,7 +12,7 @@ if [[ "$architecture" != "riscv64" ]]; then
     exit 0
 fi
 
-if [[ "$enabled" != "true" ]]; then
+if [[ "${enabled,,}" != "true" ]]; then
     exit 0
 fi
 

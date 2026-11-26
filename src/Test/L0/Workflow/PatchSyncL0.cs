@@ -11,6 +11,8 @@ namespace GitHub.Runner.Common.Tests.Workflow
         [Theory]
         [InlineData("")]
         [InlineData("false")]
+        [InlineData("true ")]
+        [InlineData("1")]
         [Trait("Level", "L0")]
         [Trait("Category", "Common")]
         public void DisabledRiscVDoesNotRequireAPatch(string enabled)
@@ -36,18 +38,20 @@ namespace GitHub.Runner.Common.Tests.Workflow
         }
 
         [Theory]
-        [InlineData("commit", "# From upstream commit: 0123456789abcdef0123456789abcdef01234567", "0123456789abcdef0123456789abcdef01234567")]
-        [InlineData("release", "# From upstream release: v2.338.2", "v2.338.2")]
+        [InlineData("true", "commit", "# From upstream commit: 0123456789abcdef0123456789abcdef01234567", "0123456789abcdef0123456789abcdef01234567")]
+        [InlineData("TRUE", "commit", "# From upstream commit: 0123456789abcdef0123456789abcdef01234567", "0123456789abcdef0123456789abcdef01234567")]
+        [InlineData("True", "release", "# From upstream release: v2.338.2", "v2.338.2")]
+        [InlineData("tRuE", "release", "# From upstream release: v2.338.2", "v2.338.2")]
         [Trait("Level", "L0")]
         [Trait("Category", "Common")]
-        public void EnabledRiscVUsesItsOwnPatchBaseline(string kind, string marker, string expected)
+        public void EnabledRiscVUsesItsOwnPatchBaseline(string enabled, string kind, string marker, string expected)
         {
             string patch = Path.GetTempFileName();
             try
             {
                 File.WriteAllText(patch, $"diff --git a/file b/file\n{marker}\n");
 
-                var result = GetBaseline("riscv64", "true", "newer-global", patch, kind);
+                var result = GetBaseline("riscv64", enabled, "newer-global", patch, kind);
 
                 Assert.Equal(0, result.ExitCode);
                 Assert.Equal(expected, result.Output);
