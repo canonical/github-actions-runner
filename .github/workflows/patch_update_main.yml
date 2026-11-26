@@ -68,11 +68,18 @@ jobs:
     - name: Process architectures
       if: steps.get-commits.outputs.PREVIOUS_COMMIT != '' && steps.get-commits.outputs.PREVIOUS_COMMIT != steps.get-commits.outputs.LATEST_COMMIT
       id: process-arches
+      env:
+        ENABLE_RISCV64_BUILDS: ${{ vars.ENABLE_RISCV64_BUILDS }}
       run: |
         mkdir -p patches
         touch successful_arches.txt
         
         for arch in ppc64le s390x arm riscv64; do
+          patch_baseline=$(bash .github/scripts/patch-sync-baseline.sh "$arch" "${ENABLE_RISCV64_BUILDS:-}" "${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}" "patches/runner-main-sdk8-$arch.patch" commit)
+          if [[ -z "$patch_baseline" ]]; then
+            echo "Skipping $arch while RISC-V builds are disabled"
+            continue
+          fi
           echo "Processing $arch..."
           cd upstream-runner
           
@@ -82,13 +89,13 @@ jobs:
           
           # Check if previous patch exists
           if [ ! -f "../patches/runner-main-sdk8-$arch.patch" ] || \
-             ! grep -q "${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}" "../patches/runner-main-sdk8-$arch.patch"; then
+             ! grep -Fq -- "$patch_baseline" "../patches/runner-main-sdk8-$arch.patch"; then
             echo "::error::No valid previous patch for $arch"
             exit 1
           fi
 
           # Apply previous patch to previous commit
-          git checkout ${{ steps.get-commits.outputs.PREVIOUS_COMMIT }}
+          git checkout "$patch_baseline"
           if ! git apply --check --whitespace=nowarn "../patches/runner-main-sdk8-$arch.patch"; then
             echo "::error::Previous patch application failed for $arch"
             exit 1

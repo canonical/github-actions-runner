@@ -66,11 +66,18 @@ jobs:
       - name: Process architectures
         if: steps.get-tags.outputs.PREVIOUS_TAG != '' && steps.get-tags.outputs.PREVIOUS_TAG != steps.get-tags.outputs.LATEST_TAG
         id: process-arches
+        env:
+          ENABLE_RISCV64_BUILDS: ${{ vars.ENABLE_RISCV64_BUILDS }}
         run: |
           mkdir -p patches
           touch successful_arches.txt
 
           for arch in ppc64le s390x arm riscv64; do
+            patch_baseline=$(bash .github/scripts/patch-sync-baseline.sh "$arch" "${ENABLE_RISCV64_BUILDS:-}" "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "patches/runner-sdk8-$arch.patch" release)
+            if [[ -z "$patch_baseline" ]]; then
+              echo "Skipping $arch while RISC-V builds are disabled"
+              continue
+            fi
             echo "Processing $arch..."
             cd upstream-runner
             
@@ -96,16 +103,16 @@ jobs:
 
             # Check if previous patch exists
             if [ ! -f "../patches/runner-sdk8-$arch.patch" ] || \
-               ! grep -q "${{ steps.get-tags.outputs.PREVIOUS_TAG }}" "../patches/runner-sdk8-$arch.patch"; then
-              echo "::error::No valid previous patch for $arch — patch file missing or does not reference ${{ steps.get-tags.outputs.PREVIOUS_TAG }}"
+               ! grep -Fq -- "$patch_baseline" "../patches/runner-sdk8-$arch.patch"; then
+              echo "::error::No valid previous patch for $arch — patch file missing or does not reference $patch_baseline"
               cd ..
               exit 1
             fi
 
             # Apply previous patch to previous release
-            git checkout ${{ steps.get-tags.outputs.PREVIOUS_TAG }}
+            git checkout "$patch_baseline"
             if ! git apply --check --whitespace=nowarn "../patches/runner-sdk8-$arch.patch"; then
-              echo "::error::Previous patch application failed for $arch — patch does not apply cleanly to ${{ steps.get-tags.outputs.PREVIOUS_TAG }}"
+              echo "::error::Previous patch application failed for $arch — patch does not apply cleanly to $patch_baseline"
               cd ..
               exit 1
             fi

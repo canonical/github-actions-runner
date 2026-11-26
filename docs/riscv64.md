@@ -47,9 +47,14 @@ be incompatible with Node 24 and may need to be updated.
 
 CI and releases do not schedule RISC-V builds by default. Once a native
 Ubuntu 24.04 RISC-V builder with the self-hosted labels `noble`, `generic` and
-`riscv64` is available, set the repository variable `ENABLE_RISCV64_BUILDS`
-to `true`. Enabled releases run the RISC-V L0 tests and package smoke test,
-then publish the archive and its SHA-256 checksum.
+`riscv64` is available, refresh and check both RISC-V patches against the
+current main source and latest upstream release before setting the repository
+variable `ENABLE_RISCV64_BUILDS` to `true`. Patch synchronization skips RISC-V
+while disabled and uses each RISC-V patch's own source marker when enabled.
+Enabling the variable does not itself refresh stale patches; update the pinned
+Node checksum when porting to a new Node version.
+Enabled releases run the RISC-V L0 tests and package smoke test, then publish
+the archive and its SHA-256 checksum.
 
 Configure RISC-V runners with `--disableupdate` and maintain timely upgrades
 from this repository's releases; GitHub's official runner download service
