@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runtime: [ linux-s390x, linux-ppc64le, linux-x64, linux-arm64, linux-arm ]
+        runtime: ${{ fromJSON(vars.ENABLE_RISCV64_BUILDS == 'true' && '["linux-s390x","linux-ppc64le","linux-x64","linux-arm64","linux-arm","linux-riscv64"]' || '["linux-s390x","linux-ppc64le","linux-x64","linux-arm64","linux-arm"]') }}
         include:
 
         - runtime: linux-x64
@@ -44,19 +44,48 @@ jobs:
           runs_on: s390x
           patch_tag: s390x
 
-    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on }}" ]
+    runs-on: [ self-hosted, noble, generic, "${{ matrix.runs_on || 'riscv64' }}" ]
     steps:
     - uses: actions/checkout@v7
 
     - name: Install DotNet SDK
+      if: matrix.runtime != 'linux-riscv64'
       run: sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0
 
-    - name: Apply patches
-      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm'
+    - name: Install community RISC-V DotNet SDK
+      if: matrix.runtime == 'linux-riscv64'
       run: |
-        git apply patches/runner-main-sdk8-${{ matrix.patch_tag }}.patch
+        # riscv64-dotnet-setup:start
+        set -euo pipefail
+
+        version=10.0.115
+        sha256=f06bcd3f7cff2781711150ae817190ce67d630b075be0b0aedeb021049c8a0d4
+        archive="${RUNNER_TEMP:?}/dotnet-sdk-${version}-linux-riscv64.tar.gz"
+        sdk_dir="${RUNNER_TEMP}/dotnet-riscv64-${version}"
+
+        curl -fsSL --retry 3 -o "$archive" \
+          "https://github.com/filipnavara/dotnet-riscv/releases/download/${version}/dotnet-sdk-${version}-linux-riscv64.tar.gz"
+        printf '%s  %s\n' "$sha256" "$archive" | sha256sum --check
+        mkdir -p "$sdk_dir"
+        tar -xzf "$archive" -C "$sdk_dir"
+        rm "$archive"
+
+        "$sdk_dir/dotnet" --version
+        echo "$sdk_dir" >> "${GITHUB_PATH:?}"
+        echo "DOTNET_ROOT=$sdk_dir" >> "${GITHUB_ENV:?}"
+        # riscv64-dotnet-setup:end
+
+    - name: Apply patches
+      if: matrix.runtime == 'linux-s390x' || matrix.runtime == 'linux-ppc64le' || matrix.runtime == 'linux-arm' || matrix.runtime == 'linux-riscv64'
+      run: |
+        if [[ "${{ matrix.runtime }}" == "linux-riscv64" && ( "$GITHUB_REF" == refs/heads/releases/* || "$GITHUB_BASE_REF" == releases/* ) ]]; then
+          git apply patches/runner-sdk8-riscv64.patch
+        else
+          git apply patches/runner-main-sdk8-${{ matrix.patch_tag || 'riscv64' }}.patch
+        fi
 
     - name: Update DotNet required version pin
+      if: matrix.runtime != 'linux-riscv64'
       run: |
         current_version=$( cat src/global.json | jq -r '.sdk.version' )
         if [ "${{ matrix.runtime }}" = "linux-arm" ]; then
@@ -77,7 +106,34 @@ jobs:
 
     # Fork-only: see .github/scripts/strip-bundled-npm.sh.
     - name: Strip bundled npm and corepack
-      run: .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
+      run: |
+        if [[ "${{ matrix.runtime }}" == "linux-riscv64" ]] && compgen -G '_layout/externals/node20*' > /dev/null; then
+          echo "::error::RISC-V runner must not bundle Node 20."
+          exit 1
+        fi
+        .github/scripts/strip-bundled-npm.sh _layout ${{ matrix.runtime }}
+
+    - name: Apply workflow test patch
+      if: matrix.runtime == 'linux-x64' || matrix.runtime == 'linux-riscv64'
+      env:
+        ENABLE_RISCV64_BUILDS: ${{ vars.ENABLE_RISCV64_BUILDS }}
+      run: |
+        # workflow-test-patch:start
+        apply_workflow_test_patch() {
+          local enabled="$1" patch="$2"
+
+          if git apply --check "$patch" >/dev/null 2>&1; then
+            git apply "$patch"
+          elif [[ "${enabled,,}" == "true" ]]; then
+            echo "::error::Workflow test patch is stale; refresh it before enabling RISC-V."
+            return 1
+          else
+            echo "::warning::Workflow test patch is stale; skipping its tests while RISC-V is disabled."
+          fi
+        }
+        # workflow-test-patch:end
+
+        apply_workflow_test_patch "${ENABLE_RISCV64_BUILDS:-}" patches/patch-sync-l0.patch
 
     # Run tests
     - name: L0
@@ -87,7 +143,7 @@ jobs:
         # 2026/11/25 - ProcessExtensionL0.SuccessReadProcessEnv may be flaky; retrigger this job once before investigating a failure.
         ./dev.sh test
       working-directory: src
-      if: matrix.runtime == 'linux-x64'
+      if: matrix.runtime == 'linux-x64' || matrix.runtime == 'linux-riscv64'
 
 
     # L0 uses DEBUG-only test hooks; keep Release layout/package validation separate.
